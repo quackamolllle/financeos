@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>FinanceOS - Wealth Tracker</title>
     <meta name="description" content="Self-hosted personal finance dashboard. Track net worth, investments, goals, and project your financial future.">
     
@@ -1476,7 +1476,7 @@
                     </aside>
 
                     {/* Main Content */}
-                    <main className="flex-1 overflow-y-auto p-5 md:p-8 relative">
+                    <main className="flex-1 overflow-y-auto p-5 md:p-8 pb-28 md:pb-8 relative">
                         <div className="max-w-5xl mx-auto">
                             {loading ? <LoadingDashboard /> : (
                                 <>
@@ -1499,19 +1499,23 @@
                         </div>
                     </main>
 
-                    {/* Mobile Bottom Nav */}
-                    <nav className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-xl border-t border-border px-2 pb-safe pt-1.5 z-50 shadow-float" style={{ backgroundColor: dark ? 'rgba(11,15,26,0.9)' : 'rgba(255,255,255,0.9)' }}>
-                        <div className="flex justify-around items-center h-14">
+                    {/* Mobile Floating Bottom Dock */}
+                    <nav className="md:hidden fixed bottom-3 left-3 right-3 backdrop-blur-xl border border-border/80 rounded-2xl px-2 pt-2.5 z-50 shadow-float" 
+                         style={{ 
+                             backgroundColor: dark ? 'rgba(20,25,38,0.92)' : 'rgba(255,255,255,0.92)',
+                             paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px))'
+                         }}>
+                        <div className="flex justify-around items-center h-12">
                             {TABS.map(tab => (
                                 <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                                    className={`flex flex-col items-center justify-center w-14 h-full rounded-xl transition-colors ${activeTab === tab.id ? 'text-primary' : 'text-text-muted'}`}>
+                                    className={`flex flex-col items-center justify-center w-12 h-full rounded-xl transition-all ${activeTab === tab.id ? 'text-primary font-bold scale-105' : 'text-text-muted hover:text-text-primary'}`}>
                                     <tab.icon />
-                                    <span className="text-[10px] mt-0.5 font-semibold">{tab.label}</span>
+                                    <span className="text-[10px] mt-0.5 font-semibold tracking-tight">{tab.label}</span>
                                 </button>
                             ))}
-                            <button onClick={handleLock} className="flex flex-col items-center justify-center w-14 h-full rounded-xl text-red-400">
+                            <button onClick={handleLock} className="flex flex-col items-center justify-center w-12 h-full rounded-xl text-red-400 hover:text-red-300 transition-all" title="Lock Dashboard">
                                 <IconLock />
-                                <span className="text-[10px] mt-0.5 font-semibold">Lock</span>
+                                <span className="text-[10px] mt-0.5 font-semibold tracking-tight">Lock</span>
                             </button>
                         </div>
                     </nav>

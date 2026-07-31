@@ -5,6 +5,8 @@ const fs = require('fs');
 
 const crypto = require('crypto');
 
+const { put, list } = require('@vercel/blob');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -16,6 +18,51 @@ if (!fs.existsSync(dataDir)) {
 
 const dbPath = path.join(dataDir, 'financeos.db');
 const db = new sqlite3.Database(dbPath);
+
+// Vercel Blob Persistence & Sync Helpers
+let lastBlobSyncTime = 0;
+
+const downloadDbFromBlob = async () => {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return;
+  try {
+    const blobs = await list({ prefix: 'financeos.db' });
+    if (blobs && blobs.blobs && blobs.blobs.length > 0) {
+      const latestBlob = blobs.blobs[0];
+      const blobTime = new Date(latestBlob.uploadedAt).getTime();
+      
+      if (blobTime > lastBlobSyncTime || !fs.existsSync(dbPath) || fs.statSync(dbPath).size === 0) {
+        const res = await fetch(latestBlob.url);
+        if (res.ok) {
+          const arrayBuf = await res.arrayBuffer();
+          fs.writeFileSync(dbPath, Buffer.from(arrayBuf));
+          lastBlobSyncTime = blobTime;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[Cloud Sync Error] Download failed:', err.message);
+  }
+};
+
+const uploadDbToBlob = async () => {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return;
+  try {
+    if (fs.existsSync(dbPath) && fs.statSync(dbPath).size > 0) {
+      const fileData = fs.readFileSync(dbPath);
+      await put('financeos.db', fileData, {
+        access: 'public',
+        addRandomSuffix: false,
+      });
+      lastBlobSyncTime = Date.now();
+    }
+  } catch (err) {
+    console.error('[Cloud Sync Error] Upload failed:', err.message);
+  }
+};
+
+const afterMutation = () => {
+  uploadDbToBlob().catch(err => console.error('[Sync Error]', err.message));
+};
 
 // Cookie & Security Helpers
 const parseCookies = (req) => {
@@ -31,15 +78,20 @@ const parseCookies = (req) => {
 };
 
 const hashPin = (pin, salt = crypto.randomBytes(16).toString('hex')) => {
-  const hash = crypto.pbkdf2Sync(String(pin), salt, 10000, 64, 'sha512').toString('hex');
+  const cleanPin = String(pin).trim();
+  const hash = crypto.pbkdf2Sync(cleanPin, salt, 10000, 64, 'sha512').toString('hex');
   return `${salt}:${hash}`;
 };
 
 const verifyPin = (pin, storedHash) => {
   if (!storedHash || !storedHash.includes(':')) return false;
   const [salt, originalHash] = storedHash.split(':');
-  const hash = crypto.pbkdf2Sync(String(pin), salt, 10000, 64, 'sha512').toString('hex');
-  return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(originalHash));
+  const cleanPin = String(pin).trim();
+  const hash = crypto.pbkdf2Sync(cleanPin, salt, 10000, 64, 'sha512').toString('hex');
+  const buf1 = Buffer.from(hash, 'utf-8');
+  const buf2 = Buffer.from(originalHash, 'utf-8');
+  if (buf1.length !== buf2.length) return false;
+  return crypto.timingSafeEqual(buf1, buf2);
 };
 
 const getSessionToken = (req) => {
@@ -211,6 +263,9 @@ const dbInitPromise = initDb().catch(err => {
 
 app.use(async (req, res, next) => {
   await dbInitPromise;
+  if (req.path.startsWith('/api')) {
+    await downloadDbFromBlob();
+  }
   next();
 });
 
@@ -248,6 +303,8 @@ app.post('/api/auth/setup-pin', async (req, res) => {
     const expiresAt = now + 30 * 24 * 60 * 60 * 1000;
     await dbRun('INSERT INTO sessions (token, created_at, expires_at) VALUES (?, ?, ?)', [token, now, expiresAt]);
 
+    afterMutation();
+
     const maxAgeSec = 30 * 24 * 60 * 60;
     res.setHeader('Set-Cookie', `financeos_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSec}`);
     res.json({ success: true, token });
@@ -280,6 +337,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     const maxAgeSec = days * 24 * 60 * 60;
     res.setHeader('Set-Cookie', `financeos_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSec}`);
+    afterMutation();
     res.json({ success: true, token });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -291,6 +349,7 @@ app.post('/api/auth/logout', async (req, res) => {
     const token = getSessionToken(req);
     if (token) {
       await dbRun('DELETE FROM sessions WHERE token = ?', [token]);
+      afterMutation();
     }
     res.setHeader('Set-Cookie', 'financeos_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
     res.json({ success: true });
@@ -317,6 +376,7 @@ app.post('/api/auth/change-pin', async (req, res) => {
 
     const hashed = hashPin(newPin);
     await dbRun("INSERT OR REPLACE INTO settings (key, value) VALUES ('pin_hash', ?)", [hashed]);
+    afterMutation();
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -361,6 +421,7 @@ app.post('/api/accounts', async (req, res) => {
       [name, type, parseFloat(costBasis) || 0]
     );
     const newAcc = await dbGet('SELECT * FROM accounts WHERE id = ?', [resRun.lastID]);
+    afterMutation();
     res.status(201).json(newAcc);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -387,6 +448,7 @@ app.put('/api/accounts/:id', async (req, res) => {
     );
 
     const updated = await dbGet('SELECT * FROM accounts WHERE id = ?', [id]);
+    afterMutation();
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -397,6 +459,7 @@ app.delete('/api/accounts/:id', async (req, res) => {
   try {
     const { id } = req.params;
     await dbRun('DELETE FROM accounts WHERE id = ?', [id]);
+    afterMutation();
     res.json({ success: true, message: 'Account deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -429,6 +492,7 @@ app.post('/api/snapshots', async (req, res) => {
     );
 
     const newSnap = await dbGet('SELECT * FROM snapshots WHERE id = ?', [resRun.lastID]);
+    afterMutation();
     res.status(201).json({
       ...newSnap,
       balances: JSON.parse(newSnap.balances)
@@ -462,6 +526,7 @@ app.put('/api/snapshots/:id', async (req, res) => {
     );
 
     const updated = await dbGet('SELECT * FROM snapshots WHERE id = ?', [id]);
+    afterMutation();
     res.json({
       ...updated,
       balances: JSON.parse(updated.balances)
@@ -475,6 +540,7 @@ app.delete('/api/snapshots/:id', async (req, res) => {
   try {
     const { id } = req.params;
     await dbRun('DELETE FROM snapshots WHERE id = ?', [id]);
+    afterMutation();
     res.json({ success: true, message: 'Snapshot deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -499,6 +565,7 @@ app.post('/api/goals', async (req, res) => {
       [name, parseFloat(target) || 0]
     );
     const newGoal = await dbGet('SELECT * FROM goals WHERE id = ?', [resRun.lastID]);
+    afterMutation();
     res.status(201).json(newGoal);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -524,6 +591,7 @@ app.put('/api/goals/:id', async (req, res) => {
     );
 
     const updated = await dbGet('SELECT * FROM goals WHERE id = ?', [id]);
+    afterMutation();
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -534,6 +602,7 @@ app.delete('/api/goals/:id', async (req, res) => {
   try {
     const { id } = req.params;
     await dbRun('DELETE FROM goals WHERE id = ?', [id]);
+    afterMutation();
     res.json({ success: true, message: 'Goal deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -577,6 +646,7 @@ app.post('/api/restore', async (req, res) => {
       }
     }
 
+    afterMutation();
     res.json({ success: true, message: 'Backup restored successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
