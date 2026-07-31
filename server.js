@@ -3,6 +3,8 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
+const crypto = require('crypto');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -14,6 +16,48 @@ if (!fs.existsSync(dataDir)) {
 
 const dbPath = path.join(dataDir, 'financeos.db');
 const db = new sqlite3.Database(dbPath);
+
+// Cookie & Security Helpers
+const parseCookies = (req) => {
+  const list = {};
+  const rc = req.headers.cookie;
+  if (rc) {
+    rc.split(';').forEach((cookie) => {
+      const parts = cookie.split('=');
+      list[parts.shift().trim()] = decodeURIComponent(parts.join('='));
+    });
+  }
+  return list;
+};
+
+const hashPin = (pin, salt = crypto.randomBytes(16).toString('hex')) => {
+  const hash = crypto.pbkdf2Sync(String(pin), salt, 10000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+};
+
+const verifyPin = (pin, storedHash) => {
+  if (!storedHash || !storedHash.includes(':')) return false;
+  const [salt, originalHash] = storedHash.split(':');
+  const hash = crypto.pbkdf2Sync(String(pin), salt, 10000, 64, 'sha512').toString('hex');
+  return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(originalHash));
+};
+
+const getSessionToken = (req) => {
+  const cookies = parseCookies(req);
+  if (cookies.financeos_session) return cookies.financeos_session;
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+  return req.headers['x-session-token'];
+};
+
+const validateSession = async (req) => {
+  const token = getSessionToken(req);
+  if (!token) return false;
+  const session = await dbGet('SELECT * FROM sessions WHERE token = ? AND expires_at > ?', [token, Date.now()]);
+  return !!session;
+};
 
 // Middleware
 app.use(express.json());
@@ -49,6 +93,29 @@ const dbGet = (sql, params = []) => {
 
 // Initialize Database Tables & Seed Data
 const initDb = async () => {
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    )
+  `);
+
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      token TEXT PRIMARY KEY,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    )
+  `);
+
+  if (process.env.APP_PIN) {
+    const existing = await dbGet("SELECT value FROM settings WHERE key = 'pin_hash'");
+    if (!existing) {
+      const hashed = hashPin(process.env.APP_PIN);
+      await dbRun("INSERT OR REPLACE INTO settings (key, value) VALUES ('pin_hash', ?)", [hashed]);
+    }
+  }
+
   await dbRun(`
     CREATE TABLE IF NOT EXISTS accounts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -144,6 +211,133 @@ const dbInitPromise = initDb().catch(err => {
 
 app.use(async (req, res, next) => {
   await dbInitPromise;
+  next();
+});
+
+// --- AUTHENTICATION & SECURITY ENDPOINTS ---
+
+app.get('/api/auth/status', async (req, res) => {
+  try {
+    const pinRow = await dbGet("SELECT value FROM settings WHERE key = 'pin_hash'");
+    const pinSet = !!pinRow;
+    if (!pinSet) {
+      return res.json({ pinSet: false, authenticated: false });
+    }
+    const authenticated = await validateSession(req);
+    res.json({ pinSet: true, authenticated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/setup-pin', async (req, res) => {
+  try {
+    const { pin } = req.body;
+    if (!pin || String(pin).trim().length < 4) {
+      return res.status(400).json({ error: 'PIN must be at least 4 characters long.' });
+    }
+    const existing = await dbGet("SELECT value FROM settings WHERE key = 'pin_hash'");
+    if (existing) {
+      return res.status(400).json({ error: 'PIN is already set. Use change PIN instead.' });
+    }
+    const hashed = hashPin(pin);
+    await dbRun("INSERT OR REPLACE INTO settings (key, value) VALUES ('pin_hash', ?)", [hashed]);
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const now = Date.now();
+    const expiresAt = now + 30 * 24 * 60 * 60 * 1000;
+    await dbRun('INSERT INTO sessions (token, created_at, expires_at) VALUES (?, ?, ?)', [token, now, expiresAt]);
+
+    const maxAgeSec = 30 * 24 * 60 * 60;
+    res.setHeader('Set-Cookie', `financeos_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSec}`);
+    res.json({ success: true, token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { pin, remember } = req.body;
+    if (!pin) {
+      return res.status(400).json({ error: 'PIN is required.' });
+    }
+    const pinRow = await dbGet("SELECT value FROM settings WHERE key = 'pin_hash'");
+    if (!pinRow) {
+      return res.status(400).json({ error: 'No PIN configured yet.' });
+    }
+
+    const isValid = verifyPin(pin, pinRow.value);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Incorrect Security PIN.' });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const now = Date.now();
+    const days = remember !== false ? 30 : 1;
+    const expiresAt = now + days * 24 * 60 * 60 * 1000;
+    await dbRun('INSERT INTO sessions (token, created_at, expires_at) VALUES (?, ?, ?)', [token, now, expiresAt]);
+
+    const maxAgeSec = days * 24 * 60 * 60;
+    res.setHeader('Set-Cookie', `financeos_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSec}`);
+    res.json({ success: true, token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/logout', async (req, res) => {
+  try {
+    const token = getSessionToken(req);
+    if (token) {
+      await dbRun('DELETE FROM sessions WHERE token = ?', [token]);
+    }
+    res.setHeader('Set-Cookie', 'financeos_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/change-pin', async (req, res) => {
+  try {
+    const isAuth = await validateSession(req);
+    if (!isAuth) {
+      return res.status(401).json({ error: 'Unauthorized.' });
+    }
+    const { currentPin, newPin } = req.body;
+    if (!currentPin || !newPin || String(newPin).trim().length < 4) {
+      return res.status(400).json({ error: 'New PIN must be at least 4 characters.' });
+    }
+
+    const pinRow = await dbGet("SELECT value FROM settings WHERE key = 'pin_hash'");
+    if (!pinRow || !verifyPin(currentPin, pinRow.value)) {
+      return res.status(400).json({ error: 'Current PIN is incorrect.' });
+    }
+
+    const hashed = hashPin(newPin);
+    await dbRun("INSERT OR REPLACE INTO settings (key, value) VALUES ('pin_hash', ?)", [hashed]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Middleware enforcing PIN authentication on all data API routes
+app.use(async (req, res, next) => {
+  if (!req.path.startsWith('/api')) return next();
+  if (req.path.startsWith('/api/auth')) return next();
+
+  const pinRow = await dbGet("SELECT value FROM settings WHERE key = 'pin_hash'");
+  if (!pinRow) {
+    return res.status(401).json({ error: 'PIN setup required', code: 'PIN_SETUP_REQUIRED' });
+  }
+
+  const isAuth = await validateSession(req);
+  if (!isAuth) {
+    return res.status(401).json({ error: 'Unauthorized. PIN required.', code: 'PIN_REQUIRED' });
+  }
+
   next();
 });
 
