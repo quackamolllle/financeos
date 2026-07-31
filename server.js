@@ -7,7 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Ensure data directory exists
-const dataDir = path.join(__dirname, 'data');
+const dataDir = process.env.VERCEL ? '/tmp/data' : path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
@@ -138,8 +138,13 @@ const initDb = async () => {
   }
 };
 
-initDb().catch(err => {
+const dbInitPromise = initDb().catch(err => {
   console.error('Error initializing database:', err);
+});
+
+app.use(async (req, res, next) => {
+  await dbInitPromise;
+  next();
 });
 
 // --- REST API ENDPOINTS ---
@@ -385,6 +390,10 @@ app.post('/api/restore', async (req, res) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
-  console.log(`FinanceOS Server running on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`FinanceOS Server running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
