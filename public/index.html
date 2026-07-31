@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceOS - Wealth Tracker</title>
+    <meta name="description" content="Self-hosted personal finance dashboard. Track net worth, investments, goals, and project your financial future.">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: 'var(--bg)',
+                        card: 'var(--card)',
+                        primary: '#4F6EF7',
+                        'primary-dark': '#3B5AE5',
+                        success: '#10B981',
+                        'success-light': 'var(--success-light)',
+                        destructive: '#EF4444',
+                        'destructive-light': 'var(--destructive-light)',
+                        warning: '#F59E0B',
+                        muted: 'var(--muted)',
+                        'muted-dark': 'var(--muted-dark)',
+                        border: 'var(--border)',
+                        'text-primary': 'var(--text-primary)',
+                        'text-secondary': 'var(--text-secondary)',
+                        'text-muted': 'var(--text-muted)',
+                        sidebar: '#1E293B',
+                        'sidebar-hover': '#334155',
+                        'sidebar-active': '#4F6EF7',
+                    },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    boxShadow: {
+                        'subtle': '0 1px 3px 0 rgba(0,0,0,0.04), 0 1px 2px -1px rgba(0,0,0,0.03)',
+                        'card': 'var(--shadow-card)',
+                        'float': 'var(--shadow-float)',
+                        'glow': '0 0 20px rgba(79, 110, 247, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --bg: #F4F5F7;
+            --card: #FFFFFF;
+            --muted: #F1F2F5;
+            --muted-dark: #E4E6EB;
+            --border: #E2E4E9;
+            --text-primary: #0F172A;
+            --text-secondary: #64748B;
+            --text-muted: #94A3B8;
+            --success-light: #D1FAE5;
+            --destructive-light: #FEE2E2;
+            --shadow-card: 0 4px 16px -2px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-float: 0 12px 40px -8px rgba(0,0,0,0.12), 0 4px 12px -4px rgba(0,0,0,0.06);
+            --input-bg: #F1F2F5;
+            --tooltip-bg: rgba(255,255,255,0.95);
+            --chart-grid: #E2E4E9;
+        }
+        .dark {
+            --bg: #0B0F1A;
+            --card: #141926;
+            --muted: #1C2235;
+            --muted-dark: #252D42;
+            --border: #2A3350;
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --success-light: #064E3B;
+            --destructive-light: #450A0A;
+            --shadow-card: 0 4px 16px -2px rgba(0,0,0,0.3), 0 2px 4px -2px rgba(0,0,0,0.2);
+            --shadow-float: 0 12px 40px -8px rgba(0,0,0,0.5), 0 4px 12px -4px rgba(0,0,0,0.3);
+            --input-bg: #1C2235;
+            --tooltip-bg: rgba(20,25,38,0.95);
+            --chart-grid: #2A3350;
+        }
+        body { background-color: var(--bg); color: var(--text-primary); margin: 0; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s ease, color 0.3s ease; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: var(--text-muted); border-radius: 20px; opacity: 0.5; }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--text-secondary); }
+        
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; opacity: 0; }
+        .slide-down { animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; transform-origin: top; }
+        .lift-on-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .lift-on-hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-float); }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-8px) scaleY(0.97); } to { opacity: 1; transform: translateY(0) scaleY(1); } }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        @keyframes staggerIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes donutDraw { from { stroke-dashoffset: 314.15; } }
+        
+        .stagger-1 { animation: staggerIn 0.4s ease-out 0.05s forwards; opacity: 0; }
+        .stagger-2 { animation: staggerIn 0.4s ease-out 0.1s forwards; opacity: 0; }
+        .stagger-3 { animation: staggerIn 0.4s ease-out 0.15s forwards; opacity: 0; }
+        .stagger-4 { animation: staggerIn 0.4s ease-out 0.2s forwards; opacity: 0; }
+        
+        .skeleton { background: linear-gradient(90deg, var(--muted) 25%, var(--muted-dark) 50%, var(--muted) 75%); background-size: 200% 100%; animation: shimmer 1.8s infinite; border-radius: 12px; }
+        .mesh-gradient { background: radial-gradient(circle at 20% 50%, rgba(79,110,247,0.08) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(16,185,129,0.06) 0%, transparent 50%), radial-gradient(circle at 50% 80%, rgba(245,158,11,0.04) 0%, transparent 50%); }
+        
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        
+        .progress-gradient { background: linear-gradient(90deg, #4F6EF7, #818CF8); }
+        .progress-gradient-success { background: linear-gradient(90deg, #10B981, #34D399); }
+        
+        input[type="range"] { -webkit-appearance: none; height: 6px; border-radius: 3px; background: var(--border); outline: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #4F6EF7; cursor: pointer; box-shadow: 0 2px 8px rgba(79,110,247,0.3); transition: transform 0.15s ease; }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+        input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #4F6EF7; cursor: pointer; border: none; box-shadow: 0 2px 8px rgba(79,110,247,0.3); }
+
+        .sidebar-link { position: relative; overflow: hidden; }
+        .sidebar-link::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 0; background: #4F6EF7; border-radius: 0 3px 3px 0; transition: height 0.2s ease; }
+        .sidebar-link-active::before { height: 60%; }
+
+        .donut-segment { transition: opacity 0.2s ease, transform 0.2s ease; transform-origin: center; cursor: pointer; }
+        .donut-segment:hover { opacity: 0.85; }
+        .donut-segment.dimmed { opacity: 0.3; }
+
+        .theme-transition, .theme-transition * { transition: background-color 0.3s ease, border-color 0.3s ease, color 0.15s ease, box-shadow 0.3s ease; }
+    </style>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="antialiased selection:bg-primary/20">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+        const ACCOUNT_COLORS = ['#4F6EF7', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#EF4444', '#14B8A6', '#6366F1', '#F43F5E'];
+
+        // --- DARK MODE HOOK ---
+        const useDarkMode = () => {
+            const [dark, setDark] = useState(() => {
+                const stored = localStorage.getItem('financeos-dark-mode');
+                if (stored !== null) return stored === 'true';
+                return window.matchMedia('(prefers-color-scheme: dark)').matches;
+            });
+            useEffect(() => {
+                document.documentElement.classList.toggle('dark', dark);
+                localStorage.setItem('financeos-dark-mode', dark);
+            }, [dark]);
+            return [dark, setDark];
+        };
+
+        // --- API BRIDGE ---
+        const api = {
+            getAccounts: () => fetch('/api/accounts').then(r => r.json()),
+            addAccount: (d) => fetch('/api/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json()),
+            updateAccount: (id, d) => fetch(`/api/accounts/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json()),
+            deleteAccount: (id) => fetch(`/api/accounts/${id}`, { method: 'DELETE' }).then(r => r.json()),
+            getSnapshots: () => fetch('/api/snapshots').then(r => r.json()),
+            addSnapshot: (d) => fetch('/api/snapshots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json()),
+            updateSnapshot: (id, d) => fetch(`/api/snapshots/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json()),
+            deleteSnapshot: (id) => fetch(`/api/snapshots/${id}`, { method: 'DELETE' }).then(r => r.json()),
+            getGoals: () => fetch('/api/goals').then(r => r.json()),
+            addGoal: (d) => fetch('/api/goals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json()),
+            deleteGoal: (id) => fetch(`/api/goals/${id}`, { method: 'DELETE' }).then(r => r.json()),
+            restoreBackup: (d) => fetch('/api/restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json()),
+        };
+
+        // --- ICONS ---
+        const IconDashboard = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>;
+        const IconPieChart = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>;
+        const IconTarget = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;
+        const IconCrystalBall = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/><path d="M12 22a10 10 0 0 1-10-10"/></svg>;
+        const IconSettings = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
+        const IconPlus = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+        const IconChevronDown = ({ className }) => <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>;
+        const IconEdit = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+        const IconTrash = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>;
+        const IconRefresh = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>;
+        const IconTrendUp = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>;
+        const IconTrendDown = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>;
+        const IconDownload = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+        const IconUpload = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>;
+        const IconDatabase = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>;
+        const IconClock = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+        const IconWallet = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>;
+        const IconSun = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>;
+        const IconMoon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
+        const IconNote = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>;
+        const IconArrowRight = ({ className }) => <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>;
+
+        const formatCurr = (num) => new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num || 0);
+        const formatCompact = (num) => {
+            if (Math.abs(num) >= 1000000) return '€' + (num / 1000000).toFixed(1) + 'M';
+            if (Math.abs(num) >= 10000) return '€' + (num / 1000).toFixed(1) + 'K';
+            return formatCurr(num);
+        };
+
+        // --- LOADING SKELETON ---
+        const Skeleton = ({ className }) => <div className={`skeleton ${className}`}></div>;
+        const LoadingDashboard = () => (
+            <div className="space-y-8 fade-in">
+                <div><Skeleton className="h-5 w-32 mb-3" /><Skeleton className="h-14 w-64" /></div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[1,2,3,4].map(i => <Skeleton key={i} className="h-24 rounded-2xl" />)}
+                </div>
+                <Skeleton className="h-80 rounded-3xl" />
+            </div>
+        );
+
+        // --- MATH: SMOOTH CURVE GENERATORS ---
+        const createSmoothLine = (points) => {
+            if (points.length === 0) return '';
+            if (points.length === 1) return `M ${points[0].x},${points[0].y}`;
+            let path = `M ${points[0].x},${points[0].y}`;
+            for (let i = 1; i < points.length; i++) {
+                const prev = points[i - 1]; const curr = points[i];
+                const cpX = prev.x + (curr.x - prev.x) / 2;
+                path += ` C ${cpX},${prev.y} ${cpX},${curr.y} ${curr.x},${curr.y}`;
+            }
+            return path;
+        };
+        const createSmoothPathKeyed = (points, key) => {
+            if (points.length === 0) return '';
+            if (points.length === 1) return `M ${points[0].x},${points[0][key]}`;
+            let path = `M ${points[0].x},${points[0][key]}`;
+            for (let i = 1; i < points.length; i++) {
+                const prev = points[i - 1]; const curr = points[i];
+                const cpX = prev.x + (curr.x - prev.x) / 2;
+                path += ` C ${cpX},${prev[key]} ${cpX},${curr[key]} ${curr.x},${curr[key]}`;
+            }
+            return path;
+        };
+        const createSmoothReversePathKeyed = (points, key) => {
+            if (points.length === 0) return '';
+            if (points.length === 1) return `L ${points[0].x},${points[0][key]}`;
+            let path = `L ${points[points.length - 1].x},${points[points.length - 1][key]}`;
+            for (let i = points.length - 2; i >= 0; i--) {
+                const curr = points[i + 1]; const prev = points[i];
+                const cpX = prev.x + (curr.x - prev.x) / 2;
+                path += ` C ${cpX},${curr[key]} ${cpX},${prev[key]} ${prev.x},${prev[key]}`;
+            }
+            return path;
+        };
+
+        // --- CHART COMPONENTS ---
+        const OverlayAreaChart = ({ data }) => {
+            if (!data || data.length < 2) return null;
+            const min = Math.min(...data) * 0.95; const max = Math.max(...data) * 1.05;
+            const width = 800; const height = 120;
+            const range = max - min === 0 ? 1 : max - min;
+            const pointsObj = data.map((val, i) => ({ x: (i / (data.length - 1)) * width, y: height - ((val - min) / range) * height }));
+            const topCurve = createSmoothLine(pointsObj);
+            const areaPath = `${topCurve} L ${width},${height} L 0,${height} Z`;
+            return (
+                <svg viewBox={`0 0 ${width} ${height}`} className="absolute bottom-0 left-0 w-full h-[40%] opacity-30 pointer-events-none" preserveAspectRatio="none">
+                    <defs><linearGradient id="whiteFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ffffff" stopOpacity="0.6" /><stop offset="100%" stopColor="#ffffff" stopOpacity="0" /></linearGradient></defs>
+                    <path d={areaPath} fill="url(#whiteFade)" />
+                    <path d={topCurve} fill="none" stroke="#ffffff" strokeWidth="4" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+                </svg>
+            );
+        };
+
+        const Sparkline = ({ data, color = "#10B981" }) => {
+            const activeData = data.filter(v => v > 0);
+            if (!activeData || activeData.length < 2) return <div className="w-20 h-8"></div>;
+            const min = Math.min(...activeData); const max = Math.max(...activeData);
+            const width = 80; const height = 32;
+            const range = max - min === 0 ? 1 : max - min;
+            const pointsObj = activeData.map((val, i) => ({ x: (i / (activeData.length - 1)) * width, y: height - ((val - min) / range) * (height - 6) - 3 }));
+            const linePath = createSmoothLine(pointsObj);
+            return (<svg viewBox={`0 0 ${width} ${height}`} className="w-20 h-8 overflow-visible"><path d={linePath} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" /></svg>);
+        };
+
+        const StackedAreaChart = ({ snapshots, accounts }) => {
+            const [hoverIdx, setHoverIdx] = useState(null);
+            if (!snapshots || snapshots.length === 0) return null;
+            const width = 800, height = 300, paddingX = 20, paddingYTop = 20, paddingYBottom = 30;
+            const maxNW = Math.max(...snapshots.map(s => Object.values(s.balances).reduce((a,b)=>a+b,0)), 1);
+            const polygons = accounts.map((acc, accIdx) => {
+                const points = snapshots.map((snap, snapIdx) => {
+                    const x = paddingX + (snapIdx / Math.max(1, snapshots.length - 1)) * (width - paddingX * 2);
+                    let sumBelow = 0;
+                    for(let i = 0; i < accIdx; i++) sumBelow += (snap.balances[accounts[i].id] || 0);
+                    const val = snap.balances[acc.id] || 0;
+                    const sumTop = sumBelow + val;
+                    const yBottom = height - paddingYBottom - (sumBelow / maxNW) * (height - paddingYBottom - paddingYTop);
+                    const yTop = height - paddingYBottom - (sumTop / maxNW) * (height - paddingYBottom - paddingYTop);
+                    return { x, yTop, yBottom };
+                });
+                const topPath = createSmoothPathKeyed(points, 'yTop');
+                const bottomPath = createSmoothReversePathKeyed(points, 'yBottom');
+                return { id: acc.id, path: `${topPath} ${bottomPath} Z`, topStroke: topPath, color: acc.color || ACCOUNT_COLORS[accIdx % ACCOUNT_COLORS.length] };
+            });
+            const activeSnap = hoverIdx !== null ? snapshots[hoverIdx] : null;
+            const activeX = hoverIdx !== null ? paddingX + (hoverIdx / Math.max(1, snapshots.length - 1)) * (width - paddingX * 2) : 0;
+            return (
+                <div className="relative w-full h-full font-sans select-none">
+                    {activeSnap && (
+                        <div className="absolute top-0 left-0 p-3 rounded-2xl shadow-float border border-border/50 pointer-events-none z-10 min-w-[180px] slide-down" style={{ backgroundColor: 'var(--tooltip-bg)', backdropFilter: 'blur(12px)' }}>
+                            <p className="text-sm font-bold text-text-primary mb-2 border-b border-border/50 pb-2">{new Date(activeSnap.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+                            {accounts.map((acc, i) => (
+                                <div key={acc.id} className="flex justify-between items-center text-xs mb-1">
+                                    <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: acc.color || ACCOUNT_COLORS[i % ACCOUNT_COLORS.length] }}></span><span className="text-text-secondary truncate max-w-[80px]">{acc.name}</span></div>
+                                    <span className="font-semibold">{formatCurr(activeSnap.balances[acc.id] || 0)}</span>
+                                </div>
+                            ))}
+                            <div className="flex justify-between items-center text-sm font-bold mt-2 pt-2 border-t border-border/50"><span>Total</span><span>{formatCurr(Object.values(activeSnap.balances).reduce((a,b)=>a+b,0))}</span></div>
+                        </div>
+                    )}
+                    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
+                        <defs>{polygons.map(poly => (<linearGradient key={`grad-${poly.id}`} id={`grad-${poly.id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={poly.color} stopOpacity="0.45" /><stop offset="100%" stopColor={poly.color} stopOpacity="0.02" /></linearGradient>))}</defs>
+                        {polygons.map(poly => (<g key={poly.id}><path d={poly.path} fill={`url(#grad-${poly.id})`} /><path d={poly.topStroke} fill="none" stroke={poly.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></g>))}
+                        {hoverIdx !== null && (<line x1={activeX} y1={paddingYTop} x2={activeX} y2={height - paddingYBottom} stroke="var(--text-primary)" strokeWidth="1.5" strokeDasharray="4 4" className="pointer-events-none" />)}
+                        {snapshots.map((snap, i) => {
+                            const x = paddingX + (i / Math.max(1, snapshots.length - 1)) * (width - paddingX * 2);
+                            const segmentWidth = (width - paddingX * 2) / Math.max(1, snapshots.length - 1);
+                            return (<g key={i}><text x={x} y={height - 5} textAnchor="middle" fill="var(--text-muted)" fontSize="11" fontWeight="500" className="pointer-events-none">{new Date(snap.date).toLocaleDateString('en-US', { month: 'short' })}</text><rect x={x - segmentWidth/2} y={0} width={segmentWidth} height={height} fill="transparent" cursor="crosshair" onMouseEnter={() => setHoverIdx(i)} onMouseLeave={() => setHoverIdx(null)} onTouchStart={() => setHoverIdx(i)} /></g>);
+                        })}
+                    </svg>
+                </div>
+            );
+        };
+
+        // --- INTERACTIVE DONUT CHART ---
+        const InteractiveDonut = ({ data, size = 200 }) => {
+            const [hoveredIdx, setHoveredIdx] = useState(null);
+            if (!data || data.length === 0) return null;
+            const total = data.reduce((sum, d) => sum + d.value, 0);
+            if (total === 0) return <div className="text-text-muted text-center mt-10">No data</div>;
+
+            const cx = 80, cy = 80, r = 50, strokeW = 18;
+            let cumAngle = 0;
+            const segments = data.map((d, i) => {
+                const pct = d.value / total;
+                const startAngle = cumAngle;
+                cumAngle += pct;
+                // Calculate label position at midpoint of the arc
+                const midAngle = (startAngle + pct / 2) * 2 * Math.PI - Math.PI / 2;
+                const labelR = r + strokeW / 2 + 16;
+                const lx = cx + Math.cos(midAngle) * labelR;
+                const ly = cy + Math.sin(midAngle) * labelR;
+                return { ...d, pct, startAngle, strokeDasharray: `${pct * 2 * Math.PI * r} ${2 * Math.PI * r}`, strokeDashoffset: -startAngle * 2 * Math.PI * r, lx, ly, idx: i };
+            });
+
+            const hovered = hoveredIdx !== null ? segments[hoveredIdx] : null;
+
+            return (
+                <div className="flex flex-col items-center gap-4 w-full">
+                    <div className="relative" style={{ width: size, height: size }}>
+                        <svg viewBox="0 0 160 160" className="w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+                            {segments.map((seg, i) => (
+                                <circle key={i}
+                                    r={r} cx={cx} cy={cy} fill="transparent"
+                                    stroke={seg.color}
+                                    strokeWidth={hoveredIdx === i ? strokeW + 4 : strokeW}
+                                    strokeDasharray={seg.strokeDasharray}
+                                    strokeDashoffset={seg.strokeDashoffset}
+                                    className={`donut-segment ${hoveredIdx !== null && hoveredIdx !== i ? 'dimmed' : ''}`}
+                                    onMouseEnter={() => setHoveredIdx(i)}
+                                    onMouseLeave={() => setHoveredIdx(null)}
+                                    style={{ filter: hoveredIdx === i ? `drop-shadow(0 0 6px ${seg.color}60)` : 'none' }}
+                                />
+                            ))}
+                        </svg>
+                        {/* Center label */}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            {hovered ? (
+                                <div className="text-center fade-in" key={hoveredIdx}>
+                                    <span className="text-[10px] text-text-muted font-bold uppercase tracking-widest block">{hovered.label}</span>
+                                    <span className="font-extrabold text-lg text-text-primary">{formatCurr(hovered.value)}</span>
+                                    <span className="text-xs text-text-secondary font-semibold block">{(hovered.pct * 100).toFixed(1)}%</span>
+                                </div>
+                            ) : (
+                                <div className="text-center">
+                                    <span className="text-[10px] text-text-muted font-bold uppercase tracking-widest block">Total</span>
+                                    <span className="font-extrabold text-xl text-text-primary">{formatCurr(total)}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    {/* Legend grid */}
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 w-full max-w-[260px]">
+                        {segments.map((seg, i) => (
+                            <div key={i} className={`flex items-center gap-2 cursor-pointer rounded-lg px-2 py-1.5 transition-all ${hoveredIdx === i ? 'bg-muted' : ''}`}
+                                onMouseEnter={() => setHoveredIdx(i)} onMouseLeave={() => setHoveredIdx(null)}>
+                                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: seg.color }}></span>
+                                <div className="min-w-0">
+                                    <span className="text-[11px] text-text-primary font-semibold truncate block">{seg.label}</span>
+                                    <span className="text-[10px] text-text-muted font-medium">{(seg.pct * 100).toFixed(1)}%</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const SimpleLineChart = ({ data }) => {
+            if (!data || data.length === 0) return null;
+            const width = 800, height = 250, padding = 30;
+            const min = Math.min(...data.map(d => d.nw)) * 0.95; const max = Math.max(...data.map(d => d.nw)) * 1.05;
+            const range = max - min === 0 ? 1 : max - min;
+            const pointsObj = data.map((d, i) => ({ x: padding + (i / Math.max(1, data.length - 1)) * (width - padding * 2), y: height - padding - ((d.nw - min) / range) * (height - padding * 2), label: d.label }));
+            const topCurve = createSmoothLine(pointsObj);
+            const areaPath = `${topCurve} L ${pointsObj[pointsObj.length-1].x},${height - padding} L ${pointsObj[0].x},${height - padding} Z`;
+            return (
+                <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full drop-shadow-sm overflow-visible">
+                    <defs><linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#4F6EF7" stopOpacity="0.3" /><stop offset="100%" stopColor="#4F6EF7" stopOpacity="0" /></linearGradient></defs>
+                    <path d={areaPath} fill="url(#blueGradient)" />
+                    <path d={topCurve} fill="none" stroke="#4F6EF7" strokeWidth="3" strokeLinecap="round" />
+                    {pointsObj.map((p, i) => (<g key={i}><circle cx={p.x} cy={p.y} r="4" fill="var(--card)" stroke="#4F6EF7" strokeWidth="2.5" /><text x={p.x} y={height - 2} textAnchor="middle" fill="var(--text-muted)" fontSize="11" fontWeight="500">{p.label}</text></g>))}
+                </svg>
+            );
+        };
+
+        // --- STAT CARD ---
+        const StatCard = ({ label, value, valueClass, staggerClass, icon }) => (
+            <div className={`bg-card p-5 rounded-2xl shadow-subtle border border-border/40 lift-on-hover ${staggerClass}`}>
+                <div className="flex items-center gap-2 mb-2">
+                    {icon && <span className="text-text-muted">{icon}</span>}
+                    <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{label}</span>
+                </div>
+                <span className={`text-2xl font-bold ${valueClass || 'text-text-primary'}`}>{value}</span>
+            </div>
+        );
+
+        // --- INPUT CLASSES ---
+        const inputCls = "w-full h-12 rounded-xl px-4 outline-none focus:ring-2 focus:ring-primary/40 font-medium border border-transparent focus:border-primary/30 transition-all";
+        const inputBg = { backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)' };
+
+        // --- TABS ---
+        const OverviewTab = ({ accounts, snapshots, loadData }) => {
+            const formRef = useRef(null);
+            const [isAdding, setIsAdding] = useState(false);
+            const [editingId, setEditingId] = useState(null);
+            const [snapDate, setSnapDate] = useState(new Date().toISOString().split('T')[0]);
+            const [snapIncome, setSnapIncome] = useState('');
+            const [snapNotes, setSnapNotes] = useState('');
+            const [snapBalances, setSnapBalances] = useState({});
+            const [expandedSnapId, setExpandedSnapId] = useState(null);
+            const [compareBaseId, setCompareBaseId] = useState(null);
+            const [compareTargetId, setCompareTargetId] = useState(null);
+
+            const cashAccounts = accounts.filter(a => a.type !== 'Investment');
+            const investmentAccounts = accounts.filter(a => a.type === 'Investment');
+
+            useEffect(() => {
+                if (!isAdding && !editingId) {
+                    if (snapshots.length > 0 && Object.keys(snapBalances).length === 0) {
+                        const b = {}; accounts.forEach(a => b[a.id] = snapshots[snapshots.length - 1].balances[a.id] || 0); setSnapBalances(b);
+                    } else if (accounts.length > 0 && Object.keys(snapBalances).length === 0) {
+                        const b = {}; accounts.forEach(a => b[a.id] = ''); setSnapBalances(b);
+                    }
+                }
+                
+                if (snapshots.length >= 2 && !compareBaseId && !compareTargetId) {
+                    setCompareBaseId(snapshots[snapshots.length - 2].id);
+                    setCompareTargetId(snapshots[snapshots.length - 1].id);
+                } else if (snapshots.length < 2) {
+                    setCompareBaseId(null);
+                    setCompareTargetId(null);
+                }
+            }, [accounts, snapshots, isAdding, editingId, compareBaseId, compareTargetId]);
+
+            const handleSave = async (e) => {
+                e.preventDefault();
+                const parsed = {}; accounts.forEach(a => parsed[a.id] = parseFloat(snapBalances[a.id]) || 0);
+                const payload = { date: snapDate, timestamp: new Date(snapDate).getTime(), income: parseFloat(snapIncome) || 0, balances: parsed, notes: snapNotes };
+                if (editingId) await api.updateSnapshot(editingId, payload); else await api.addSnapshot(payload);
+                resetForm(); loadData();
+            };
+            const handleEdit = (snap) => {
+                setIsAdding(true); setEditingId(snap.id); setSnapDate(snap.date); setSnapIncome(snap.income || ''); setSnapNotes(snap.notes || '');
+                const b = {}; accounts.forEach(a => b[a.id] = snap.balances[a.id] || 0); setSnapBalances(b); setExpandedSnapId(null);
+                setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+            };
+            const handleDelete = async (id) => { if(confirm("Delete this snapshot?")) { await api.deleteSnapshot(id); setExpandedSnapId(null); loadData(); } };
+            const resetForm = () => {
+                setIsAdding(false); setEditingId(null); setSnapIncome(''); setSnapNotes('');
+                if (snapshots.length > 0) { const b = {}; accounts.forEach(a => b[a.id] = snapshots[snapshots.length - 1].balances[a.id] || 0); setSnapBalances(b); }
+            };
+            const calcNW = (b) => Object.values(b || {}).reduce((a, v) => a + v, 0);
+
+            let currentNW = 0, previousNW = 0, monthlySaved = 0, monthlySpent = 0, savedPct = 0, latestIncome = 0, nwChangePct = 0;
+            if (snapshots.length > 0) {
+                const latest = snapshots[snapshots.length - 1]; currentNW = calcNW(latest.balances); latestIncome = latest.income || 0;
+                if (snapshots.length > 1) {
+                    previousNW = calcNW(snapshots[snapshots.length - 2].balances); monthlySaved = currentNW - previousNW;
+                    nwChangePct = previousNW !== 0 ? ((currentNW - previousNW) / previousNW) * 100 : 0;
+                    if (latest.income > 0) { monthlySpent = latest.income - monthlySaved; savedPct = (monthlySaved / latest.income) * 100; }
+                }
+            }
+
+            const TYPE_COLORS = { 'Checking': '#10B981', 'Spending': '#8B5CF6', 'Investment': '#4F6EF7' };
+            const DEFAULT_COLORS = ['#F59E0B', '#EC4899', '#06B6D4'];
+            const uniqueTypes = [...new Set(accounts.map(a => a.type))];
+            const groupedAccounts = uniqueTypes.map((type, idx) => ({ id: type, name: type === 'Investment' ? 'Investments' : type, color: TYPE_COLORS[type] || DEFAULT_COLORS[idx % DEFAULT_COLORS.length], type }));
+            const groupedSnapshots = snapshots.slice(-12).map(snap => {
+                const gb = {}; groupedAccounts.forEach(g => { gb[g.id] = accounts.filter(a => a.type === g.id).reduce((sum, a) => sum + (snap.balances[a.id] || 0), 0); });
+                return { ...snap, balances: gb };
+            });
+
+            return (
+                <div className="space-y-6 pb-24 fade-in" ref={formRef}>
+                    {/* Hero Section */}
+                    <header className="relative bg-card rounded-3xl p-6 md:p-8 shadow-card border border-border/40 mesh-gradient overflow-hidden">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 relative z-10">
+                            <div>
+                                <h2 className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Total Net Worth</h2>
+                                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-text-primary">{formatCurr(currentNW)}</h1>
+                                {snapshots.length > 1 && (
+                                    <div className={`flex items-center gap-2 mt-2 ${monthlySaved >= 0 ? 'text-success' : 'text-destructive'}`}>
+                                        {monthlySaved >= 0 ? <IconTrendUp /> : <IconTrendDown />}
+                                        <span className="text-sm font-bold">{monthlySaved >= 0 ? '+' : ''}{formatCurr(monthlySaved)}</span>
+                                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-current/10">{nwChangePct >= 0 ? '+' : ''}{nwChangePct.toFixed(1)}%</span>
+                                        <span className="text-xs text-text-muted font-medium">vs last month</span>
+                                    </div>
+                                )}
+                            </div>
+                            <button onClick={() => { resetForm(); setIsAdding(!isAdding); }} className="bg-text-primary text-white h-11 px-6 rounded-2xl font-semibold flex items-center gap-2 hover:opacity-90 transition-all active:scale-[0.97] shadow-card text-sm dark:bg-primary dark:hover:bg-primary-dark">
+                                <IconPlus /> Log Snapshot
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Snapshot Form */}
+                    {isAdding && (
+                        <form onSubmit={handleSave} className="slide-down bg-card p-6 md:p-8 rounded-3xl shadow-float border border-primary/20 flex flex-col gap-5 relative overflow-hidden">
+                            <div className={`absolute top-0 left-0 w-full h-1 ${editingId ? 'bg-warning' : 'bg-primary'}`}></div>
+                            <div>
+                                <h3 className="font-bold text-lg text-text-primary">{editingId ? '✏️ Edit Snapshot' : '📸 New Snapshot'}</h3>
+                                <p className="text-sm text-text-secondary mt-1">Values pre-filled from your last snapshot.</p>
+                            </div>
+                            <div className="flex flex-wrap gap-4">
+                                <div className="flex-1 min-w-[180px]">
+                                    <label className="text-xs font-bold text-text-secondary mb-2 block uppercase tracking-wider">Date</label>
+                                    <input required type="date" value={snapDate} onChange={e => setSnapDate(e.target.value)} className={inputCls} style={inputBg} />
+                                </div>
+                                <div className="flex-1 min-w-[180px]">
+                                    <label className="text-xs font-bold text-text-secondary mb-2 block uppercase tracking-wider">Monthly Income</label>
+                                    <input required type="number" step="0.01" value={snapIncome} onChange={e => setSnapIncome(e.target.value)} className={inputCls} style={inputBg} placeholder="€0.00" />
+                                </div>
+                            </div>
+                            {/* Notes field */}
+                            <div>
+                                <label className="text-xs font-bold text-text-secondary mb-2 block uppercase tracking-wider">📝 Notes <span className="text-text-muted font-normal normal-case">(optional)</span></label>
+                                <textarea value={snapNotes} onChange={e => setSnapNotes(e.target.value)} rows="2" className="w-full rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/40 font-medium border border-transparent focus:border-primary/30 transition-all resize-none text-sm" style={inputBg} placeholder="e.g. Got annual bonus, paid insurance renewal..." />
+                            </div>
+                            {cashAccounts.length > 0 && (
+                                <div>
+                                    <label className="text-xs font-bold text-text-secondary mb-3 block uppercase tracking-wider">💳 Checking & Spending</label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {cashAccounts.map(acc => (
+                                            <div key={acc.id} className="p-4 rounded-xl border border-transparent focus-within:border-primary/30 transition-all" style={{ backgroundColor: 'var(--input-bg)' }}>
+                                                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{acc.name}</span>
+                                                <div className="flex items-center mt-1.5"><span className="text-text-muted font-medium mr-2">€</span>
+                                                    <input required type="number" step="0.01" value={snapBalances[acc.id] !== undefined ? snapBalances[acc.id] : ''} onChange={e => setSnapBalances({...snapBalances, [acc.id]: e.target.value})} className="w-full bg-transparent outline-none font-bold text-lg text-text-primary" placeholder="0.00" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {investmentAccounts.length > 0 && (
+                                <div>
+                                    <label className="text-xs font-bold text-text-secondary mb-3 block uppercase tracking-wider">📈 Investments</label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {investmentAccounts.map(acc => (
+                                            <div key={acc.id} className="p-4 rounded-xl border border-transparent focus-within:border-primary/30 transition-all" style={{ backgroundColor: 'var(--input-bg)' }}>
+                                                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{acc.name}</span>
+                                                <div className="flex items-center mt-1.5"><span className="text-text-muted font-medium mr-2">€</span>
+                                                    <input required type="number" step="0.01" value={snapBalances[acc.id] !== undefined ? snapBalances[acc.id] : ''} onChange={e => setSnapBalances({...snapBalances, [acc.id]: e.target.value})} className="w-full bg-transparent outline-none font-bold text-lg text-text-primary" placeholder="0.00" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex justify-end gap-3 pt-3 border-t border-border/50">
+                                <button type="button" onClick={resetForm} className="h-10 px-5 bg-muted text-text-secondary rounded-xl font-semibold text-sm hover:bg-muted-dark transition-colors">Cancel</button>
+                                <button type="submit" className={`h-10 px-5 text-white rounded-xl font-semibold text-sm shadow-md transition-all ${editingId ? 'bg-warning hover:bg-amber-600' : 'bg-primary hover:bg-primary-dark'}`}>{editingId ? 'Save Changes' : 'Save Snapshot'}</button>
+                            </div>
+                        </form>
+                    )}
+
+                    {/* Stat Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <StatCard label="Monthly Saved" value={`${monthlySaved > 0 ? '+' : ''}${formatCurr(monthlySaved)}`} valueClass={monthlySaved >= 0 ? 'text-success' : 'text-destructive'} staggerClass="stagger-1" />
+                        <StatCard label="Savings Rate" value={`${savedPct.toFixed(1)}%`} valueClass={savedPct >= 20 ? 'text-success' : savedPct > 0 ? 'text-text-primary' : 'text-destructive'} staggerClass="stagger-2" />
+                        <StatCard label="Monthly Spent" value={formatCurr(monthlySpent)} staggerClass="stagger-3" />
+                        <StatCard label="Monthly Income" value={formatCurr(latestIncome)} staggerClass="stagger-4" icon={<IconWallet />} />
+                    </div>
+
+                    {/* Wealth Allocation Chart */}
+                    <div className="bg-card rounded-3xl shadow-card border border-border/40 p-6 md:p-8">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-lg text-text-primary">Wealth Allocation</h3>
+                            <span className="text-[11px] text-text-muted bg-muted px-3 py-1 rounded-full font-medium">Hover to inspect</span>
+                        </div>
+                        <div className="w-full h-[300px] flex items-center justify-center">
+                            {snapshots.length > 0 ? <StackedAreaChart snapshots={groupedSnapshots} accounts={groupedAccounts} /> : <p className="text-text-muted text-sm font-medium">Log your first snapshot to see your allocation chart.</p>}
+                        </div>
+                        {/* Legend */}
+                        {groupedAccounts.length > 0 && (
+                            <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-border/30 justify-center">
+                                {groupedAccounts.map((g, i) => (
+                                    <div key={g.id} className="flex items-center gap-2">
+                                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: g.color }}></span>
+                                        <span className="text-xs font-semibold text-text-secondary">{g.name}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Monthly Comparison */}
+                    {snapshots.length >= 2 && (
+                        <div>
+                            <h3 className="font-bold text-lg text-text-primary mb-3">Monthly Comparison</h3>
+                            <div className="bg-card rounded-3xl shadow-card border border-border/40 p-5 md:p-6 mb-8">
+                                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                                    <div className="flex-1">
+                                        <label className="text-xs font-bold text-text-secondary mb-2 block uppercase tracking-wider">Compare From</label>
+                                        <select value={compareBaseId || ''} onChange={e => setCompareBaseId(Number(e.target.value))} className="w-full h-11 rounded-xl px-4 outline-none border border-border/50 bg-muted/30 text-sm font-semibold text-text-primary transition-all">
+                                            {[...snapshots].reverse().map(s => <option key={s.id} value={s.id}>{new Date(s.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="flex items-center justify-center pt-6 md:pt-0"><IconArrowRight className="text-text-muted rotate-90 md:rotate-0" /></div>
+                                    <div className="flex-1">
+                                        <label className="text-xs font-bold text-text-secondary mb-2 block uppercase tracking-wider">Compare To</label>
+                                        <select value={compareTargetId || ''} onChange={e => setCompareTargetId(Number(e.target.value))} className="w-full h-11 rounded-xl px-4 outline-none border border-border/50 bg-muted/30 text-sm font-semibold text-text-primary transition-all">
+                                            {[...snapshots].reverse().map(s => <option key={s.id} value={s.id}>{new Date(s.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                {compareBaseId && compareTargetId && (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-sm whitespace-nowrap">
+                                            <thead>
+                                                <tr className="border-b border-border/40 text-text-muted text-[11px] uppercase tracking-wider font-bold">
+                                                    <th className="pb-3 pr-4">Account</th>
+                                                    <th className="pb-3 px-4 text-right">From</th>
+                                                    <th className="pb-3 px-4 text-right">To</th>
+                                                    <th className="pb-3 pl-4 text-right">Diff</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-border/20">
+                                                {accounts.map((acc, idx) => {
+                                                    const baseSnap = snapshots.find(s => s.id === compareBaseId);
+                                                    const targetSnap = snapshots.find(s => s.id === compareTargetId);
+                                                    if(!baseSnap || !targetSnap) return null;
+                                                    const baseVal = baseSnap.balances[acc.id] || 0;
+                                                    const targetVal = targetSnap.balances[acc.id] || 0;
+                                                    const diff = targetVal - baseVal;
+                                                    if(baseVal === 0 && targetVal === 0) return null;
+                                                    const pct = baseVal !== 0 ? (diff / baseVal) * 100 : (diff > 0 ? 100 : 0);
+                                                    return (
+                                                        <tr key={acc.id} className="group hover:bg-muted/20 transition-colors">
+                                                            <td className="py-3 pr-4 font-semibold text-text-primary"><div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{backgroundColor: ACCOUNT_COLORS[idx % ACCOUNT_COLORS.length]}}></div>{acc.name}</div></td>
+                                                            <td className="py-3 px-4 text-right text-text-secondary">{formatCurr(baseVal)}</td>
+                                                            <td className="py-3 px-4 text-right font-medium text-text-primary">{formatCurr(targetVal)}</td>
+                                                            <td className={`py-3 pl-4 text-right font-bold flex items-center justify-end gap-1.5 ${diff > 0 ? 'text-success' : diff < 0 ? 'text-destructive' : 'text-text-muted'}`}>
+                                                                {diff !== 0 && (diff > 0 ? <IconArrowRight className="w-3 h-3 -rotate-45" /> : <IconArrowRight className="w-3 h-3 rotate-45" />)}
+                                                                {diff > 0 ? '+' : ''}{formatCurr(diff)}
+                                                                <span className="text-[10px] bg-current/10 px-1.5 py-0.5 rounded-md ml-1">{diff > 0 ? '+' : ''}{pct.toFixed(1)}%</span>
+                                                            </td>
+                                                        </tr>
+                                                    )
+                                                })}
+                                                {(()=>{
+                                                    const baseSnap = snapshots.find(s => s.id === compareBaseId);
+                                                    const targetSnap = snapshots.find(s => s.id === compareTargetId);
+                                                    if(!baseSnap || !targetSnap) return null;
+                                                    const baseTotal = calcNW(baseSnap.balances);
+                                                    const targetTotal = calcNW(targetSnap.balances);
+                                                    const diffTotal = targetTotal - baseTotal;
+                                                    const pctTotal = baseTotal !== 0 ? (diffTotal / baseTotal) * 100 : (diffTotal > 0 ? 100 : 0);
+                                                    return (
+                                                        <tr className="border-t-2 border-border/50">
+                                                            <td className="py-3 pr-4 font-bold text-text-primary uppercase tracking-widest text-xs">Total Net Worth</td>
+                                                            <td className="py-3 px-4 text-right text-text-secondary font-bold">{formatCurr(baseTotal)}</td>
+                                                            <td className="py-3 px-4 text-right font-bold text-text-primary">{formatCurr(targetTotal)}</td>
+                                                            <td className={`py-3 pl-4 text-right font-extrabold flex items-center justify-end gap-1.5 ${diffTotal >= 0 ? 'text-success' : 'text-destructive'}`}>
+                                                                {diffTotal !== 0 && (diffTotal > 0 ? <IconArrowRight className="w-3 h-3 -rotate-45" /> : <IconArrowRight className="w-3 h-3 rotate-45" />)}
+                                                                {diffTotal > 0 ? '+' : ''}{formatCurr(diffTotal)}
+                                                                <span className="text-[10px] bg-current/10 px-1.5 py-0.5 rounded-md ml-1">{diffTotal > 0 ? '+' : ''}{pctTotal.toFixed(1)}%</span>
+                                                            </td>
+                                                        </tr>
+                                                    )
+                                                })()}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Snapshot History */}
+                    <div>
+                        <h3 className="font-bold text-lg text-text-primary mb-3">Snapshot History</h3>
+                        <div className="bg-card rounded-3xl shadow-card border border-border/40 overflow-hidden">
+                            {[...snapshots].reverse().map((snap) => {
+                                const snapNW = calcNW(snap.balances); const isExpanded = expandedSnapId === snap.id;
+                                return (
+                                    <div key={snap.id} className="border-b border-border/30 last:border-0">
+                                        <div onClick={() => setExpandedSnapId(isExpanded ? null : snap.id)} className="flex items-center justify-between p-4 md:p-5 hover:bg-muted/40 transition-colors cursor-pointer">
+                                            <div>
+                                                <p className="font-bold text-text-primary">{new Date(snap.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <p className="text-xs text-text-muted">Income: {formatCurr(snap.income)}</p>
+                                                    {snap.notes && <span className="inline-flex items-center gap-1 text-xs text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded-md"><IconNote /> Note</span>}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <p className="font-bold text-text-primary">{formatCurr(snapNW)}</p>
+                                                <IconChevronDown className={`text-text-muted transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                                            </div>
+                                        </div>
+                                        {isExpanded && (
+                                            <div className="px-4 md:px-5 pb-5 bg-muted/20 slide-down">
+                                                <div className="pt-4 border-t border-border/30">
+                                                    {/* Notes display */}
+                                                    {snap.notes && (
+                                                        <div className="mb-4 p-3 rounded-xl border border-primary/10 bg-primary/5">
+                                                            <div className="flex items-center gap-1.5 mb-1.5"><IconNote /><span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Note</span></div>
+                                                            <p className="text-sm text-text-secondary leading-relaxed">{snap.notes}</p>
+                                                        </div>
+                                                    )}
+                                                    <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-3">Account Breakdown</h4>
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                                                        {accounts.map((acc, idx) => (
+                                                            <div key={acc.id} className="flex flex-col"><div className="flex items-center gap-1.5 mb-1"><div className="w-2 h-2 rounded-full" style={{backgroundColor: ACCOUNT_COLORS[idx % ACCOUNT_COLORS.length]}}></div><span className="text-xs text-text-secondary truncate">{acc.name}</span></div><span className="font-bold text-sm">{formatCurr(snap.balances[acc.id] || 0)}</span></div>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex gap-2 justify-end">
+                                                        <button onClick={() => handleEdit(snap)} className="flex items-center gap-1.5 px-3.5 py-2 bg-card border border-border rounded-xl text-xs font-semibold hover:bg-muted transition-colors"><IconEdit /> Edit</button>
+                                                        <button onClick={() => handleDelete(snap.id)} className="flex items-center gap-1.5 px-3.5 py-2 bg-destructive-light text-destructive rounded-xl text-xs font-semibold hover:opacity-80 transition-colors"><IconTrash /> Delete</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                            {snapshots.length === 0 && (<div className="text-center py-12"><p className="text-text-muted font-medium">No snapshots logged yet.</p><p className="text-xs text-text-muted mt-1">Click "Log Snapshot" to get started.</p></div>)}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const InvestmentsTab = ({ accounts, snapshots, loadData }) => {
+            const [isUpdating, setIsUpdating] = useState(false);
+            const [holdings, setHoldings] = useState({});
+            const [isAddingAsset, setIsAddingAsset] = useState(false);
+            const [editingAssetId, setEditingAssetId] = useState(null);
+            const [assetFormName, setAssetFormName] = useState('');
+            const [assetCostBasis, setAssetCostBasis] = useState('');
+            const investmentAccounts = accounts.filter(a => a.type === 'Investment');
+            const latestSnap = snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
+
+            useEffect(() => {
+                if (latestSnap && !isUpdating) { const h = {}; investmentAccounts.forEach(a => h[a.id] = latestSnap.balances[a.id] || 0); setHoldings(h); }
+            }, [latestSnap, investmentAccounts, isUpdating]);
+
+            const handleSaveHoldings = async (e) => {
+                e.preventDefault(); if (!latestSnap) { alert("Log a snapshot first."); return; }
+                const ub = { ...latestSnap.balances }; for (const [k, v] of Object.entries(holdings)) ub[k] = parseFloat(v) || 0;
+                await api.updateSnapshot(latestSnap.id, { ...latestSnap, balances: ub }); setIsUpdating(false); loadData();
+            };
+            const handleAddAsset = async (e) => { e.preventDefault(); await api.addAccount({ name: assetFormName, type: 'Investment', costBasis: parseFloat(assetCostBasis) || 0 }); setAssetFormName(''); setAssetCostBasis(''); setIsAddingAsset(false); loadData(); };
+            const handleEditAsset = async (e) => { e.preventDefault(); await api.updateAccount(editingAssetId, { name: assetFormName, type: 'Investment', costBasis: parseFloat(assetCostBasis) || 0 }); setAssetFormName(''); setAssetCostBasis(''); setEditingAssetId(null); loadData(); };
+            const handleDeleteAsset = async (id) => { if(confirm('Delete this asset?')) { await api.deleteAccount(id); setEditingAssetId(null); loadData(); } };
+
+            let totalInvested = 0, totalCostBasis = 0; const donutData = [];
+            const portfolioHistory = snapshots.map(s => { let t = 0; investmentAccounts.forEach(a => t += (s.balances[a.id] || 0)); return t; });
+            investmentAccounts.forEach(acc => {
+                const val = latestSnap ? (latestSnap.balances[acc.id] || 0) : 0; totalInvested += val; totalCostBasis += acc.costBasis || 0;
+                const idx = accounts.findIndex(a => a.id === acc.id);
+                if (val > 0) donutData.push({ label: acc.name, value: val, color: ACCOUNT_COLORS[idx % ACCOUNT_COLORS.length] });
+            });
+            const portfolioReturn = totalInvested - totalCostBasis;
+            const portfolioReturnPct = totalCostBasis > 0 ? (portfolioReturn / totalCostBasis) * 100 : 0;
+
+            return (
+                <div className="space-y-6 pb-24 fade-in">
+                    <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                        <div><h1 className="text-3xl font-extrabold text-text-primary">Investments</h1><p className="text-text-secondary text-sm mt-1">Live portfolio tracking & cost basis.</p></div>
+                        <div className="flex gap-2">
+                            <button onClick={() => { setIsUpdating(false); setEditingAssetId(null); setAssetFormName(''); setAssetCostBasis(''); setIsAddingAsset(!isAddingAsset); }} className="bg-card border border-border text-text-primary h-10 px-4 rounded-xl font-semibold text-sm hover:bg-muted transition-all shadow-subtle flex items-center gap-1.5"><IconPlus /> Add Asset</button>
+                            <button onClick={() => { setIsAddingAsset(false); setEditingAssetId(null); setIsUpdating(!isUpdating); }} className="bg-primary text-white h-10 px-4 rounded-xl font-semibold text-sm hover:bg-primary-dark transition-all shadow-card flex items-center gap-1.5"><IconRefresh /> Update Prices</button>
+                        </div>
+                    </header>
+
+                    {/* Update Holdings Form */}
+                    {isUpdating && (
+                        <form onSubmit={handleSaveHoldings} className="slide-down bg-card p-6 md:p-8 rounded-3xl shadow-float border border-primary/20 flex flex-col gap-5 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+                            <div><h3 className="font-bold text-lg text-text-primary">Update Live Prices</h3><p className="text-sm text-text-secondary mt-1">Enter current total value for each investment.</p></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {investmentAccounts.map(acc => (
+                                    <div key={acc.id} className="p-4 rounded-xl border border-transparent focus-within:border-primary/30 transition-all" style={{ backgroundColor: 'var(--input-bg)' }}>
+                                        <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{acc.name}</span>
+                                        <div className="flex items-center mt-1.5"><span className="text-text-muted font-medium mr-2">€</span><input required type="number" step="any" value={holdings[acc.id] !== undefined ? holdings[acc.id] : ''} onChange={e => setHoldings({...holdings, [acc.id]: e.target.value})} className="w-full bg-transparent outline-none font-bold text-lg text-text-primary" placeholder="0.00" /></div>
+                                    </div>
+                                ))}
+                                {investmentAccounts.length === 0 && <div className="col-span-full text-sm text-text-muted p-4 rounded-xl border border-dashed border-border" style={{ backgroundColor: 'var(--muted)' }}>No investments to update.</div>}
+                            </div>
+                            <div className="flex justify-end gap-2 pt-2"><button type="button" onClick={() => setIsUpdating(false)} className="h-10 px-5 bg-muted text-text-secondary rounded-xl font-semibold text-sm">Cancel</button><button type="submit" className="h-10 px-5 bg-primary text-white rounded-xl font-semibold text-sm shadow-md hover:bg-primary-dark">Save Prices</button></div>
+                        </form>
+                    )}
+
+                    {/* Portfolio Summary */}
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                        <div className="lg:col-span-2 bg-card rounded-3xl p-6 shadow-card border border-border/40 flex flex-col items-center justify-center relative min-h-[340px]">
+                            <h3 className="font-bold text-sm text-text-secondary uppercase tracking-wider absolute top-6 left-6">Allocation</h3>
+                            <div className="mt-8 w-full flex justify-center">
+                                {donutData.length > 0 ? <InteractiveDonut data={donutData} size={180} /> : <div className="w-44 h-44 rounded-full border-[18px] border-muted"></div>}
+                            </div>
+                        </div>
+
+                        <div className="lg:col-span-3 bg-gradient-to-br from-primary to-[#3B5AE5] text-white rounded-3xl p-6 md:p-8 shadow-float relative overflow-hidden flex flex-col justify-between min-h-[280px]">
+                            <div className="relative z-10 flex flex-col justify-between h-full">
+                                <div><h3 className="text-blue-200 text-xs font-semibold uppercase tracking-wider mb-1">Total Portfolio Value</h3><p className="text-4xl md:text-5xl font-extrabold">{formatCurr(totalInvested)}</p></div>
+                                <div className="flex gap-6 mt-auto pt-4">
+                                    <div><p className="text-blue-200/80 text-[11px] uppercase tracking-wider font-semibold mb-0.5">Return</p><p className="font-bold text-lg">{portfolioReturn >= 0 ? '+' : ''}{formatCurr(portfolioReturn)}</p></div>
+                                    <div><p className="text-blue-200/80 text-[11px] uppercase tracking-wider font-semibold mb-0.5">Return %</p><p className="font-bold text-lg">{portfolioReturn >= 0 ? '+' : ''}{portfolioReturnPct.toFixed(2)}%</p></div>
+                                    <div className="hidden sm:block"><p className="text-blue-200/80 text-[11px] uppercase tracking-wider font-semibold mb-0.5">Cost Basis</p><p className="font-bold text-lg">{formatCurr(totalCostBasis)}</p></div>
+                                </div>
+                            </div>
+                            <OverlayAreaChart data={portfolioHistory} />
+                        </div>
+                    </div>
+
+                    {/* Add Asset Form */}
+                    {isAddingAsset && (
+                        <form onSubmit={handleAddAsset} className="slide-down bg-card p-6 md:p-8 rounded-3xl shadow-float border border-primary/20 flex flex-col gap-5 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+                            <div><h3 className="font-bold text-lg text-text-primary">Add New Asset</h3><p className="text-sm text-text-secondary mt-1">Track a new stock, ETF, or crypto asset.</p></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label className="text-xs font-bold text-text-secondary mb-2 block uppercase tracking-wider">Asset Name / Ticker</label><input required type="text" value={assetFormName} onChange={e => setAssetFormName(e.target.value)} className={inputCls} style={inputBg} placeholder="e.g. AAPL" autoFocus /></div>
+                                <div><label className="text-xs font-bold text-text-secondary mb-2 block uppercase tracking-wider">Total Amount Invested (€)</label><input required type="number" step="any" value={assetCostBasis} onChange={e => setAssetCostBasis(e.target.value)} className={inputCls} style={inputBg} placeholder="e.g. 1500.00" /></div>
+                            </div>
+                            <div className="flex justify-end gap-2 pt-2"><button type="button" onClick={() => setIsAddingAsset(false)} className="h-10 px-5 bg-muted text-text-secondary rounded-xl font-semibold text-sm">Cancel</button><button type="submit" className="h-10 px-5 bg-primary text-white rounded-xl font-semibold text-sm shadow-md hover:bg-primary-dark">Add Asset</button></div>
+                        </form>
+                    )}
+
+                    {/* Holdings List */}
+                    <div>
+                        <h3 className="font-bold text-lg text-text-primary mb-3">Your Holdings</h3>
+                        <div className="space-y-3">
+                            {investmentAccounts.map(acc => {
+                                const val = latestSnap ? (latestSnap.balances[acc.id] || 0) : 0;
+                                const history = snapshots.map(s => s.balances[acc.id] || 0);
+                                const cb = acc.costBasis || 0; const ret = val - cb; const retPct = cb > 0 ? (ret / cb) * 100 : 0;
+                                const trendColor = ret >= 0 ? '#10B981' : '#EF4444';
+                                const globalIdx = accounts.findIndex(a => a.id === acc.id);
+                                const accentColor = ACCOUNT_COLORS[globalIdx % ACCOUNT_COLORS.length];
+                                const weight = totalInvested > 0 ? ((val / totalInvested) * 100).toFixed(1) : '0.0';
+
+                                if (editingAssetId === acc.id) {
+                                    return (
+                                        <form key={`edit-${acc.id}`} onSubmit={handleEditAsset} className="slide-down bg-primary/5 p-5 rounded-2xl border border-primary/20 flex flex-col gap-4 relative">
+                                            <div className="flex justify-between items-center"><h4 className="font-bold text-text-primary">Editing {acc.name}</h4><button type="button" onClick={() => handleDeleteAsset(acc.id)} className="text-destructive bg-destructive-light px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:opacity-80 transition-colors"><IconTrash /> Delete</button></div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <div><label className="text-xs font-bold text-text-secondary mb-2 block">Name / Ticker</label><input required type="text" value={assetFormName} onChange={e => setAssetFormName(e.target.value)} className="w-full h-11 bg-card border border-border rounded-xl px-4 outline-none focus:ring-2 focus:ring-primary/40 font-medium" /></div>
+                                                <div><label className="text-xs font-bold text-text-secondary mb-2 block">Total Invested (€)</label><input required type="number" step="any" value={assetCostBasis} onChange={e => setAssetCostBasis(e.target.value)} className="w-full h-11 bg-card border border-border rounded-xl px-4 outline-none focus:ring-2 focus:ring-primary/40 font-medium" /></div>
+                                            </div>
+                                            <div className="flex justify-end gap-2"><button type="button" onClick={() => setEditingAssetId(null)} className="h-9 px-4 bg-card border border-border text-text-secondary rounded-xl font-semibold text-sm">Cancel</button><button type="submit" className="h-9 px-4 bg-primary text-white rounded-xl font-semibold text-sm shadow-sm hover:bg-primary-dark">Save</button></div>
+                                        </form>
+                                    );
+                                }
+
+                                return (
+                                    <div key={acc.id} className="bg-card p-4 sm:p-5 rounded-2xl shadow-subtle border border-border/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 relative group lift-on-hover" style={{ borderLeftWidth: '3px', borderLeftColor: accentColor }}>
+                                        <div className="flex items-center gap-3 w-full sm:w-auto min-w-0">
+                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0" style={{ backgroundColor: accentColor + '18', color: accentColor }}>{acc.name.substring(0,3).toUpperCase()}</div>
+                                            <div className="min-w-0 flex-1">
+                                                <span className="font-bold text-text-primary text-sm block truncate">{acc.name}</span>
+                                                <div className="flex items-center gap-2 mt-0.5"><span className="text-[11px] text-text-muted">Invested: {formatCurr(cb)}</span><span className="text-[11px] text-text-muted">·</span><span className="text-[11px] text-text-muted font-semibold">{weight}% weight</span></div>
+                                            </div>
+                                        </div>
+                                        <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-3 sm:gap-5 border-t border-border/30 sm:border-0 pt-3 sm:pt-0 mt-1 sm:mt-0">
+                                            <div className="hidden sm:block"><Sparkline data={history} color={trendColor} /></div>
+                                            <div className="text-left sm:text-right min-w-[90px]">
+                                                <span className="font-bold text-text-primary text-base block leading-tight">{formatCurr(val)}</span>
+                                                <span className={`text-xs font-bold ${ret >= 0 ? 'text-success' : 'text-destructive'}`}>{ret >= 0 ? '+' : ''}{retPct.toFixed(2)}%</span>
+                                            </div>
+                                            <button onClick={() => { setIsUpdating(false); setIsAddingAsset(false); setEditingAssetId(acc.id); setAssetFormName(acc.name); setAssetCostBasis(acc.costBasis || ''); }} className="w-9 h-9 rounded-xl bg-muted text-text-muted hover:text-primary hover:bg-primary/10 flex items-center justify-center transition-colors shrink-0" title="Edit"><IconEdit /></button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {investmentAccounts.length === 0 && (<div className="text-center py-12 bg-muted/30 rounded-2xl border border-dashed border-border"><p className="text-text-muted font-medium">No investments added yet.</p><p className="text-xs text-text-muted mt-1">Click "Add Asset" to start tracking.</p></div>)}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const GoalsTab = ({ goals, snapshots, accounts, loadData }) => {
+            const [isAdding, setIsAdding] = useState(false);
+            const [newGoal, setNewGoal] = useState({ name: '', target: '' });
+            const currentNW = snapshots.length > 0 ? Object.values(snapshots[snapshots.length-1].balances).reduce((a,b)=>a+b,0) : 0;
+
+            let avgSavings = 0;
+            if (snapshots.length > 1) {
+                const firstNW = Object.values(snapshots[0].balances).reduce((a,b)=>a+b,0);
+                avgSavings = Math.max(0, (currentNW - firstNW) / (snapshots.length - 1));
+            }
+
+            const handleAdd = async (e) => { e.preventDefault(); await api.addGoal({ name: newGoal.name, target: parseFloat(newGoal.target) }); setIsAdding(false); setNewGoal({name:'', target:''}); loadData(); };
+            const deleteGoal = async (id) => { if(confirm('Delete this goal?')) { await api.deleteGoal(id); loadData(); } };
+
+            return (
+                <div className="space-y-6 pb-24 fade-in">
+                    <header className="flex justify-between items-end">
+                        <div><h1 className="text-3xl font-extrabold text-text-primary">Financial Goals</h1><p className="text-text-secondary text-sm mt-1">Track milestones against your net worth.</p></div>
+                        <button onClick={() => setIsAdding(!isAdding)} className="bg-primary text-white h-10 px-5 rounded-xl font-semibold text-sm hover:bg-primary-dark transition-all shadow-card flex items-center gap-1.5"><IconPlus /> Add Goal</button>
+                    </header>
+
+                    {isAdding && (
+                        <form onSubmit={handleAdd} className="slide-down bg-card p-6 rounded-3xl shadow-float border border-primary/20 flex flex-wrap gap-4 items-end">
+                            <div className="flex-1 min-w-[200px]"><label className="text-xs font-bold text-text-secondary mb-2 block uppercase tracking-wider">Goal Name</label><input required type="text" value={newGoal.name} onChange={e=>setNewGoal({...newGoal, name: e.target.value})} className={inputCls} style={inputBg} placeholder="e.g. New Car" /></div>
+                            <div className="w-36"><label className="text-xs font-bold text-text-secondary mb-2 block uppercase tracking-wider">Target (€)</label><input required type="number" value={newGoal.target} onChange={e=>setNewGoal({...newGoal, target: e.target.value})} className={inputCls} style={inputBg} /></div>
+                            <button type="submit" className="h-12 px-6 bg-primary text-white rounded-xl font-semibold text-sm w-full sm:w-auto hover:bg-primary-dark transition-colors">Save</button>
+                        </form>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {goals.map(g => {
+                            const pct = g.target > 0 ? Math.min(100, Math.max(0, (currentNW / g.target) * 100)) : 0;
+                            const isAchieved = currentNW >= g.target;
+                            const remaining = Math.max(0, g.target - currentNW);
+                            const monthsToGoal = avgSavings > 0 ? Math.ceil(remaining / avgSavings) : null;
+                            return (
+                                <div key={g.id} className="bg-card p-6 rounded-3xl shadow-card border border-border/40 relative overflow-hidden group lift-on-hover">
+                                    <button onClick={() => deleteGoal(g.id)} className="absolute top-4 right-4 text-text-muted hover:text-destructive opacity-0 group-hover:opacity-100 transition-all w-7 h-7 flex items-center justify-center rounded-lg hover:bg-destructive-light">✕</button>
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 className="font-bold text-lg text-text-primary">{g.name}</h3>
+                                            <p className="text-sm text-text-secondary mt-1">Target: {formatCurr(g.target)}</p>
+                                            {!isAchieved && monthsToGoal !== null && (
+                                                <div className="flex items-center gap-1 mt-2 text-text-muted">
+                                                    <IconClock />
+                                                    <span className="text-xs font-medium">
+                                                        {monthsToGoal < 12 ? `~${monthsToGoal} month${monthsToGoal !== 1 ? 's' : ''} away` : `~${(monthsToGoal / 12).toFixed(1)} years away`}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {isAchieved && <p className="text-xs font-bold text-success mt-2">🎉 Goal achieved!</p>}
+                                        </div>
+                                        <div className={`text-2xl font-extrabold ${isAchieved ? 'text-success' : 'text-primary'}`}>{pct.toFixed(0)}%</div>
+                                    </div>
+                                    <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
+                                        <div className={`h-full rounded-full transition-all duration-1000 ease-out ${isAchieved ? 'progress-gradient-success' : 'progress-gradient'}`} style={{ width: `${pct}%` }}></div>
+                                    </div>
+                                    <div className="flex justify-between mt-2"><span className="text-[11px] text-text-muted font-medium">{formatCurr(currentNW)}</span><span className="text-[11px] text-text-muted font-medium">{formatCurr(g.target)}</span></div>
+                                </div>
+                            );
+                        })}
+                        {goals.length === 0 && (<div className="col-span-full text-center py-16 bg-muted/20 rounded-3xl border border-dashed border-border"><div className="text-4xl mb-3">🎯</div><p className="text-text-secondary font-semibold">No financial goals set yet.</p><p className="text-xs text-text-muted mt-1">Set a goal to track your progress.</p></div>)}
+                    </div>
+                </div>
+            );
+        };
+
+        const ForecastTab = ({ snapshots }) => {
+            const [years, setYears] = useState(10);
+            const [returnRate, setReturnRate] = useState(7);
+            let currentNW = 0, avgSavings = 0;
+            if (snapshots.length > 0) {
+                currentNW = Object.values(snapshots[snapshots.length-1].balances).reduce((a,b)=>a+b,0);
+                if (snapshots.length > 1) { const fNW = Object.values(snapshots[0].balances).reduce((a,b)=>a+b,0); avgSavings = Math.max(0, (currentNW - fNW) / (snapshots.length - 1)); }
+            }
+            const data = []; let runNW = currentNW; const mRate = (returnRate / 100) / 12;
+            for(let y=0; y<=years; y++) { data.push({ label: `Y${y}`, nw: runNW }); for(let m=0; m<12; m++) runNW = (runNW + avgSavings) * (1 + mRate); }
+            const fiveYr = years >= 5 ? data[5]?.nw : null;
+            const tenYr = years >= 10 ? data[10]?.nw : null;
+
+            return (
+                <div className="space-y-6 pb-24 fade-in">
+                    <div><h1 className="text-3xl font-extrabold text-text-primary">Time Machine</h1><p className="text-text-secondary text-sm mt-1">Project your wealth based on current habits.</p></div>
+
+                    {snapshots.length > 1 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <StatCard label="Now" value={formatCompact(currentNW)} staggerClass="stagger-1" />
+                            {fiveYr !== null && <StatCard label="In 5 Years" value={formatCompact(fiveYr)} valueClass="text-primary" staggerClass="stagger-2" />}
+                            {tenYr !== null && <StatCard label="In 10 Years" value={formatCompact(tenYr)} valueClass="text-success" staggerClass="stagger-3" />}
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-card p-6 rounded-3xl shadow-card border border-border/40 space-y-5">
+                            <div><label className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1 block">Starting Net Worth</label><div className="text-xl font-extrabold">{formatCurr(currentNW)}</div></div>
+                            <div><label className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1 block">Avg Monthly Savings</label><div className="text-xl font-extrabold text-success">+{formatCurr(avgSavings)}/mo</div></div>
+                            <div className="w-full h-px bg-border"></div>
+                            <div>
+                                <div className="flex justify-between mb-2"><label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Annual Return</label><span className="text-sm font-bold text-primary">{returnRate}%</span></div>
+                                <input type="range" min="0" max="20" step="0.5" value={returnRate} onChange={e=>setReturnRate(Number(e.target.value))} className="w-full" />
+                            </div>
+                            <div>
+                                <div className="flex justify-between mb-2"><label className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Years to Project</label><span className="text-sm font-bold text-primary">{years}</span></div>
+                                <input type="range" min="1" max="40" step="1" value={years} onChange={e=>setYears(Number(e.target.value))} className="w-full" />
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-2 bg-card p-6 md:p-8 rounded-3xl shadow-card border border-border/40 flex flex-col">
+                            <div className="flex justify-between items-start mb-4">
+                                <div><h3 className="font-bold text-lg text-text-primary">Projected Future Wealth</h3><p className="text-sm text-text-secondary">In {years} years</p></div>
+                                <div className="text-3xl font-extrabold text-primary">{formatCompact(data[data.length-1]?.nw)}</div>
+                            </div>
+                            <div className="flex-1 w-full min-h-[250px] flex items-center justify-center">
+                                {snapshots.length > 1 ? <SimpleLineChart data={data} /> : <p className="text-text-muted text-sm font-medium">Log at least two snapshots to calculate projections.</p>}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const SettingsTab = ({ accounts, loadData, dark, setDark }) => {
+            const [newAccName, setNewAccName] = useState('');
+            const [newAccType, setNewAccType] = useState('Checking');
+
+            const handleExport = async () => {
+                const accs = await api.getAccounts(); const snaps = await api.getSnapshots(); const goals = await api.getGoals();
+                const blob = new Blob([JSON.stringify({ accounts: accs, snapshots: snaps, goals })], { type: 'application/json' });
+                const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `FinanceOS_Backup_${new Date().toISOString().split('T')[0]}.json`; a.click();
+            };
+            const handleImport = (e) => {
+                const file = e.target.files[0]; if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (ev) => { try { const d = JSON.parse(ev.target.result); await api.restoreBackup(d); alert('Backup restored!'); loadData(); } catch { alert('Invalid file.'); } };
+                reader.readAsText(file);
+            };
+            const handleAddAccount = async (e) => {
+                e.preventDefault();
+                await api.addAccount({ name: newAccName, type: newAccType, costBasis: 0 });
+                setNewAccName(''); loadData();
+            };
+            const handleDeleteAccount = async (id) => { if(confirm('Delete this account?')) { await api.deleteAccount(id); loadData(); } };
+
+            const nonInvestment = accounts.filter(a => a.type !== 'Investment');
+
+            return (
+                <div className="space-y-6 pb-24 fade-in max-w-2xl">
+                    <div><h1 className="text-3xl font-extrabold text-text-primary">Settings</h1><p className="text-text-secondary text-sm mt-1">Manage accounts and data.</p></div>
+
+                    {/* Appearance */}
+                    <div className="bg-card p-6 rounded-3xl shadow-card border border-border/40">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                {dark ? <IconMoon /> : <IconSun />}
+                                <div>
+                                    <h3 className="font-bold text-lg text-text-primary">Appearance</h3>
+                                    <p className="text-sm text-text-secondary">{dark ? 'Dark mode is on' : 'Light mode is on'}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setDark(!dark)} className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${dark ? 'bg-primary' : 'bg-muted-dark'}`}>
+                                <div className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transition-transform duration-300 ${dark ? 'translate-x-7' : 'translate-x-1'}`}></div>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Account Management */}
+                    <div className="bg-card p-6 rounded-3xl shadow-card border border-border/40 space-y-5">
+                        <div className="flex items-center gap-2"><IconWallet /><h3 className="font-bold text-lg text-text-primary">Accounts</h3></div>
+                        <p className="text-sm text-text-secondary -mt-2">Manage your checking and spending accounts. Investment accounts are managed on the Investments tab.</p>
+                        
+                        {nonInvestment.length > 0 && (
+                            <div className="space-y-2">
+                                {nonInvestment.map(acc => (
+                                    <div key={acc.id} className="flex items-center justify-between p-3 bg-muted rounded-xl group">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-card flex items-center justify-center text-xs font-bold text-text-secondary">{acc.name.substring(0,2).toUpperCase()}</div>
+                                            <div><span className="font-semibold text-sm text-text-primary">{acc.name}</span><span className="text-xs text-text-muted ml-2 bg-muted-dark px-2 py-0.5 rounded-md">{acc.type}</span></div>
+                                        </div>
+                                        <button onClick={() => handleDeleteAccount(acc.id)} className="text-text-muted hover:text-destructive opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-lg hover:bg-destructive-light"><IconTrash /></button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleAddAccount} className="flex flex-wrap gap-3 items-end pt-2 border-t border-border/30">
+                            <div className="flex-1 min-w-[160px]"><label className="text-xs font-bold text-text-secondary mb-1.5 block">Name</label><input required type="text" value={newAccName} onChange={e => setNewAccName(e.target.value)} className="w-full h-10 rounded-xl px-3 outline-none focus:ring-2 focus:ring-primary/40 text-sm font-medium" style={inputBg} placeholder="e.g. N26" /></div>
+                            <div className="w-36"><label className="text-xs font-bold text-text-secondary mb-1.5 block">Type</label><select value={newAccType} onChange={e => setNewAccType(e.target.value)} className="w-full h-10 rounded-xl px-3 outline-none focus:ring-2 focus:ring-primary/40 text-sm font-medium" style={inputBg}>{['Checking', 'Spending', 'Savings'].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                            <button type="submit" className="h-10 px-4 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary-dark transition-colors flex items-center gap-1"><IconPlus /> Add</button>
+                        </form>
+                    </div>
+
+                    {/* Data Management */}
+                    <div className="bg-card p-6 rounded-3xl shadow-card border border-border/40 space-y-5">
+                        <div className="flex items-center gap-2"><IconDatabase /><h3 className="font-bold text-lg text-text-primary">Data Management</h3></div>
+                        <p className="text-sm text-text-secondary">Your data is stored securely on your server. Export backups regularly.</p>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <button onClick={handleExport} className="h-11 px-5 bg-primary text-white rounded-xl font-semibold text-sm shadow-md hover:bg-primary-dark transition-colors flex items-center justify-center gap-2"><IconDownload /> Download Backup</button>
+                            <label className="h-11 px-5 bg-muted text-text-primary rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer hover:bg-muted-dark transition-colors"><IconUpload /> Restore from Backup<input type="file" accept=".json" onChange={handleImport} className="hidden" /></label>
+                        </div>
+                    </div>
+
+                    {/* App Info */}
+                    <div className="bg-card p-6 rounded-3xl shadow-card border border-border/40">
+                        <div className="flex items-center gap-2 mb-3"><span className="text-lg">💡</span><h3 className="font-bold text-lg text-text-primary">About FinanceOS</h3></div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div><span className="text-text-muted block text-xs font-medium">Version</span><span className="font-semibold">1.1.0</span></div>
+                            <div><span className="text-text-muted block text-xs font-medium">Storage</span><span className="font-semibold">SQLite (Server)</span></div>
+                            <div><span className="text-text-muted block text-xs font-medium">Accounts</span><span className="font-semibold">{accounts.length}</span></div>
+                            <div><span className="text-text-muted block text-xs font-medium">Architecture</span><span className="font-semibold">Self-hosted</span></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP ---
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('overview');
+            const [data, setData] = useState({ accounts: [], snapshots: [], goals: [] });
+            const [loading, setLoading] = useState(true);
+            const [dark, setDark] = useDarkMode();
+
+            const loadData = async () => {
+                try {
+                    const [accounts, snapshots, goals] = await Promise.all([api.getAccounts(), api.getSnapshots(), api.getGoals()]);
+                    setData({ accounts, snapshots, goals });
+                } catch (err) { console.error('Failed to load data:', err); }
+                finally { setLoading(false); }
+            };
+
+            useEffect(() => { loadData(); }, []);
+
+            const TABS = [
+                { id: 'overview', icon: IconDashboard, label: 'Overview' },
+                { id: 'investments', icon: IconPieChart, label: 'Investments' },
+                { id: 'goals', icon: IconTarget, label: 'Goals' },
+                { id: 'forecast', icon: IconCrystalBall, label: 'Forecast' },
+                { id: 'settings', icon: IconSettings, label: 'Settings' },
+            ];
+
+            return (
+                <div className="flex h-screen overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg)' }}>
+                    {/* Desktop Sidebar */}
+                    <aside className="w-[260px] bg-sidebar hidden md:flex flex-col z-10 shadow-xl">
+                        <div className="p-6 flex items-center gap-3 border-b border-white/5">
+                            <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-glow"><span className="text-white font-extrabold text-lg">F</span></div>
+                            <div><h1 className="text-white text-lg font-bold tracking-tight">FinanceOS</h1></div>
+                        </div>
+                        <nav className="px-3 py-4 space-y-1 flex-1">
+                            {TABS.map(tab => (
+                                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                                    className={`sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all text-sm ${activeTab === tab.id ? 'sidebar-link-active bg-sidebar-active text-white shadow-lg shadow-primary/20' : 'text-gray-400 hover:text-white hover:bg-sidebar-hover'}`}>
+                                    <tab.icon /> 
+                                    <span>{tab.label}</span>
+                                </button>
+                            ))}
+                        </nav>
+                        {/* Dark mode toggle in sidebar footer */}
+                        <div className="px-4 py-3 border-t border-white/5">
+                            <button onClick={() => setDark(!dark)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-sidebar-hover transition-all text-sm font-medium">
+                                {dark ? <IconSun /> : <IconMoon />}
+                                <span>{dark ? 'Light Mode' : 'Dark Mode'}</span>
+                            </button>
+                        </div>
+                        <div className="px-4 py-3 border-t border-white/5">
+                            <div className="text-[11px] text-gray-500 font-medium">FinanceOS v1.1.0</div>
+                            <div className="text-[11px] text-gray-600">Self-hosted · SQLite</div>
+                        </div>
+                    </aside>
+
+                    {/* Main Content */}
+                    <main className="flex-1 overflow-y-auto p-5 md:p-8 relative">
+                        <div className="max-w-5xl mx-auto">
+                            {loading ? <LoadingDashboard /> : (
+                                <>
+                                    {activeTab === 'overview' && <OverviewTab accounts={data.accounts} snapshots={data.snapshots} loadData={loadData} />}
+                                    {activeTab === 'investments' && <InvestmentsTab accounts={data.accounts} snapshots={data.snapshots} loadData={loadData} />}
+                                    {activeTab === 'goals' && <GoalsTab goals={data.goals} snapshots={data.snapshots} accounts={data.accounts} loadData={loadData} />}
+                                    {activeTab === 'forecast' && <ForecastTab snapshots={data.snapshots} />}
+                                    {activeTab === 'settings' && <SettingsTab accounts={data.accounts} loadData={loadData} dark={dark} setDark={setDark} />}
+                                </>
+                            )}
+                        </div>
+                    </main>
+
+                    {/* Mobile Bottom Nav */}
+                    <nav className="md:hidden fixed bottom-0 left-0 right-0 backdrop-blur-xl border-t border-border px-2 pb-safe pt-1.5 z-50 shadow-float" style={{ backgroundColor: dark ? 'rgba(11,15,26,0.9)' : 'rgba(255,255,255,0.9)' }}>
+                        <div className="flex justify-around items-center h-14">
+                            {TABS.map(tab => (
+                                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                                    className={`flex flex-col items-center justify-center w-14 h-full rounded-xl transition-colors ${activeTab === tab.id ? 'text-primary' : 'text-text-muted'}`}>
+                                    <tab.icon />
+                                    <span className="text-[10px] mt-0.5 font-semibold">{tab.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </nav>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

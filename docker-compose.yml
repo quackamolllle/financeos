@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  financeos:
+    build: .
+    container_name: financeos
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
