@@ -316,15 +316,22 @@ app.post('/api/auth/setup-pin', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { pin, remember } = req.body;
-    if (!pin) {
+    const cleanPin = String(pin || '').trim();
+    if (!cleanPin) {
       return res.status(400).json({ error: 'PIN is required.' });
     }
-    const pinRow = await dbGet("SELECT value FROM settings WHERE key = 'pin_hash'");
+    
+    let pinRow = await dbGet("SELECT value FROM settings WHERE key = 'pin_hash'");
     if (!pinRow) {
-      return res.status(400).json({ error: 'No PIN configured yet.' });
+      if (cleanPin.length < 4) {
+        return res.status(400).json({ error: 'No PIN configured yet. Enter a PIN with at least 4 characters to set it up.', pinSet: false });
+      }
+      const hashed = hashPin(cleanPin);
+      await dbRun("INSERT OR REPLACE INTO settings (key, value) VALUES ('pin_hash', ?)", [hashed]);
+      pinRow = { value: hashed };
     }
 
-    const isValid = verifyPin(pin, pinRow.value);
+    const isValid = verifyPin(cleanPin, pinRow.value);
     if (!isValid) {
       return res.status(401).json({ error: 'Incorrect Security PIN.' });
     }
