@@ -1096,10 +1096,10 @@
                         </div>
 
                         <h2 className="text-2xl font-extrabold tracking-tight mb-1">
-                            {pinSet ? 'FinanceOS Security' : 'Welcome to FinanceOS'}
+                            {isPinSet ? 'FinanceOS Security' : 'Welcome to FinanceOS'}
                         </h2>
                         <p className="text-sm text-text-secondary mb-6">
-                            {pinSet 
+                            {isPinSet 
                                 ? 'Enter your Security PIN to access your personal dashboard.'
                                 : 'Create a Security PIN to protect your personal financial data.'}
                         </p>
@@ -1117,7 +1117,7 @@
                                     maxLength="20"
                                     value={pin}
                                     onChange={e => setPin(e.target.value)}
-                                    placeholder={pinSet ? "Enter PIN" : "Create PIN (e.g. 1234)"}
+                                    placeholder={isPinSet ? "Enter PIN" : "Create PIN (e.g. 1234)"}
                                     className="w-full text-center tracking-[0.3em] text-xl font-bold py-3.5 px-4 rounded-2xl bg-input-bg border border-border focus:outline-none focus:ring-2 focus:ring-primary text-text-primary placeholder:tracking-normal placeholder:text-sm placeholder:font-normal"
                                     autoFocus
                                 />
@@ -1130,7 +1130,7 @@
                                 </button>
                             </div>
 
-                            {!pinSet && (
+                            {!isPinSet && (
                                 <div>
                                     <input 
                                         type={showPin ? "text" : "password"} 
@@ -1143,7 +1143,7 @@
                                 </div>
                             )}
 
-                            {pinSet && (
+                            {isPinSet && (
                                 <div className="flex items-center justify-center gap-2 pt-1 text-xs text-text-secondary">
                                     <input 
                                         type="checkbox" 
@@ -1163,7 +1163,7 @@
                                 disabled={loading}
                                 className="w-full h-12 bg-primary text-white rounded-2xl font-bold text-sm shadow-md hover:bg-primary-dark transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
                             >
-                                {loading ? 'Verifying...' : (pinSet ? 'Unlock Dashboard' : 'Set Security PIN & Start')}
+                                {loading ? 'Verifying...' : (isPinSet ? 'Unlock Dashboard' : 'Set Security PIN & Start')}
                             </button>
                         </form>
 
