@@ -311,6 +311,40 @@ app.use(async (req, res, next) => {
   }
 });
 
+// --- DIAGNOSTIC / DEBUG ENDPOINT ---
+app.get('/api/debug/sync', async (req, res) => {
+  try {
+    const hasToken = !!process.env.BLOB_READ_WRITE_TOKEN;
+    let blobList = [];
+    let blobError = null;
+
+    if (hasToken) {
+      try {
+        const blobs = await list({ prefix: 'financeos.db' });
+        blobList = (blobs && blobs.blobs) ? blobs.blobs.map(b => ({ url: b.url, uploadedAt: b.uploadedAt, pathname: b.pathname })) : [];
+      } catch (err) {
+        blobError = err.message;
+      }
+    }
+
+    const accCount = await dbGet('SELECT COUNT(*) as count FROM accounts');
+    const snapCount = await dbGet('SELECT COUNT(*) as count FROM snapshots');
+
+    res.json({
+      hasToken,
+      blobCount: blobList.length,
+      blobList,
+      blobError,
+      accCount: accCount ? accCount.count : 0,
+      snapCount: snapCount ? snapCount.count : 0,
+      lastBlobSyncTime,
+      dbSize: fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- AUTHENTICATION & SECURITY ENDPOINTS ---
 
 app.get('/api/auth/status', async (req, res) => {
