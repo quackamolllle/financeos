@@ -640,10 +640,9 @@
                                         {groupedAccounts.map(g => {
                                             const latest = snapshots[snapshots.length-1];
                                             const prev = snapshots[snapshots.length-2];
-                                            const valLatest = latest.balances[g.id] || 0;
-                                            const valPrev = prev.balances[g.id] || 0;
+                                            const valLatest = accounts.filter(a => a.type === g.id).reduce((sum, a) => sum + (latest.balances[a.id] || 0), 0);
+                                            const valPrev = accounts.filter(a => a.type === g.id).reduce((sum, a) => sum + (prev.balances[a.id] || 0), 0);
                                             const diff = valLatest - valPrev;
-                                            const pct = valPrev !== 0 ? (diff / valPrev) * 100 : (diff > 0 ? 100 : 0);
                                             const isPos = diff >= 0;
                                             return (
                                                 <div key={g.id}>
@@ -674,7 +673,7 @@
                             <div className="flex-1 flex flex-col justify-center gap-6">
                                 {groupedAccounts.map(g => {
                                     const latest = snapshots.length > 0 ? snapshots[snapshots.length-1] : null;
-                                    const val = latest ? latest.balances[g.id] || 0 : 0;
+                                    const val = latest ? accounts.filter(a => a.type === g.id).reduce((sum, a) => sum + (latest.balances[a.id] || 0), 0) : 0;
                                     const pct = currentNW > 0 ? (val / currentNW) * 100 : 0;
                                     return (
                                         <div key={g.id} className="flex items-center gap-4">
