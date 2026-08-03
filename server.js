@@ -29,10 +29,17 @@ const getDb = () => {
 
 let lastUploadError = null;
 let lastDownloadError = null;
+let lastBlobCheckTime = 0;
 
 // Vercel Blob Persistence & Sync Helpers
 const downloadDbFromBlob = async () => {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return;
+  const now = Date.now();
+  if (now - lastBlobCheckTime < 2000 && fs.existsSync(dbPath) && fs.statSync(dbPath).size > 0) {
+    return;
+  }
+  lastBlobCheckTime = now;
+
   try {
     lastDownloadError = null;
     const blobs = await list({ prefix: 'financeos.db' });
@@ -47,6 +54,10 @@ const downloadDbFromBlob = async () => {
         const res = await fetch(fetchUrl, { headers });
         if (res.ok) {
           const arrayBuf = await res.arrayBuffer();
+          if (db) {
+            try { db.close(); } catch (e) {}
+            db = null;
+          }
           fs.writeFileSync(dbPath, Buffer.from(arrayBuf));
           lastBlobSyncTime = blobTime;
           console.log('[Cloud Sync] Downloaded latest financeos.db from Vercel Blob:', fetchUrl);
@@ -315,6 +326,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(async (req, res, next) => {
   try {
+    if (req.path.startsWith('/api')) {
+      await downloadDbFromBlob();
+    }
     await ensureDbReady();
     next();
   } catch (err) {
