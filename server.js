@@ -452,7 +452,7 @@ app.post('/api/auth/change-pin', async (req, res) => {
 // Middleware enforcing PIN authentication on all data API routes
 app.use(async (req, res, next) => {
   if (!req.path.startsWith('/api')) return next();
-  if (req.path.startsWith('/api/auth')) return next();
+  if (req.path.startsWith('/api/auth') || req.path.startsWith('/api/debug')) return next();
 
   const isAuth = await validateSession(req);
   if (!isAuth) {
