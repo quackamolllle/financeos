@@ -458,6 +458,16 @@
                 </div>
             );
         };
+
+        // --- TABS ---
+        const OverviewTab = ({ accounts, snapshots, loadData }) => {
+            const formRef = useRef(null);
+            const [isAdding, setIsAdding] = useState(false);
+            const [editingId, setEditingId] = useState(null);
+            const [snapDate, setSnapDate] = useState(new Date().toISOString().split('T')[0]);
+            const [snapIncome, setSnapIncome] = useState('');
+            const [snapNotes, setSnapNotes] = useState('');
+            const [snapBalances, setSnapBalances] = useState({});
             const [expandedSnapId, setExpandedSnapId] = useState(null);
             const [compareBaseId, setCompareBaseId] = useState(null);
             const [compareTargetId, setCompareTargetId] = useState(null);
