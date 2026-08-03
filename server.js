@@ -33,7 +33,9 @@ const downloadDbFromBlob = async () => {
   try {
     const blobs = await list({ prefix: 'financeos.db' });
     if (blobs && blobs.blobs && blobs.blobs.length > 0) {
-      const latestBlob = blobs.blobs.find(b => b.pathname === 'financeos.db') || blobs.blobs[0];
+      // Sort by uploadedAt descending so sortedBlobs[0] is guaranteed to be the most recent backup!
+      const sortedBlobs = blobs.blobs.slice().sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+      const latestBlob = sortedBlobs[0];
       const blobTime = new Date(latestBlob.uploadedAt).getTime();
       
       if (blobTime > lastBlobSyncTime || !fs.existsSync(dbPath) || fs.statSync(dbPath).size === 0) {
@@ -42,7 +44,7 @@ const downloadDbFromBlob = async () => {
           const arrayBuf = await res.arrayBuffer();
           fs.writeFileSync(dbPath, Buffer.from(arrayBuf));
           lastBlobSyncTime = blobTime;
-          console.log('[Cloud Sync] Downloaded financeos.db from Vercel Blob');
+          console.log('[Cloud Sync] Downloaded latest financeos.db from Vercel Blob:', latestBlob.url, new Date(blobTime).toISOString());
         }
       }
     }
