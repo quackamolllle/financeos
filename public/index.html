@@ -31,6 +31,8 @@
                         'text-primary': 'var(--text-primary)',
                         'text-secondary': 'var(--text-secondary)',
                         'text-muted': 'var(--text-muted)',
+                        'input': 'var(--input-bg)',
+                        'input-bg': 'var(--input-bg)',
                         sidebar: '#0B0F15',
                         'sidebar-hover': '#161B22',
                         'sidebar-active': '#00E599',
@@ -1116,7 +1118,8 @@
                                     value={pin}
                                     onChange={e => setPin(e.target.value)}
                                     placeholder={isPinSet ? "Enter PIN" : "Create PIN (e.g. 1234)"}
-                                    className="w-full text-center tracking-[0.3em] text-xl font-bold py-3.5 px-4 rounded-2xl bg-input-bg border border-border focus:outline-none focus:ring-2 focus:ring-primary text-text-primary placeholder:tracking-normal placeholder:text-sm placeholder:font-normal"
+                                    className="w-full text-center tracking-[0.3em] text-xl font-bold py-3.5 px-4 rounded-2xl border border-border focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder:tracking-normal placeholder:text-sm placeholder:font-normal"
+                                    style={{ backgroundColor: '#1A202C', color: '#FFFFFF' }}
                                     autoFocus
                                 />
                                 <button 
@@ -1136,7 +1139,8 @@
                                         value={confirmPin}
                                         onChange={e => setConfirmPin(e.target.value)}
                                         placeholder="Confirm PIN"
-                                        className="w-full text-center tracking-[0.3em] text-xl font-bold py-3.5 px-4 rounded-2xl bg-input-bg border border-border focus:outline-none focus:ring-2 focus:ring-primary text-text-primary placeholder:tracking-normal placeholder:text-sm placeholder:font-normal"
+                                        className="w-full text-center tracking-[0.3em] text-xl font-bold py-3.5 px-4 rounded-2xl border border-border focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder:tracking-normal placeholder:text-sm placeholder:font-normal"
+                                        style={{ backgroundColor: '#1A202C', color: '#FFFFFF' }}
                                     />
                                 </div>
                             )}
@@ -1229,15 +1233,15 @@
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-semibold text-text-secondary mb-1">Current PIN</label>
-                                <input type="password" value={currentPin} onChange={e => setCurrentPin(e.target.value)} className="w-full py-2.5 px-3 rounded-xl bg-input-bg border border-border focus:ring-2 focus:ring-primary focus:outline-none text-text-primary" />
+                                <input type="password" value={currentPin} onChange={e => setCurrentPin(e.target.value)} className="w-full py-2.5 px-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none text-white" style={{ backgroundColor: '#1A202C', color: '#FFFFFF' }} />
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-text-secondary mb-1">New PIN (min 4 characters)</label>
-                                <input type="password" value={newPin} onChange={e => setNewPin(e.target.value)} className="w-full py-2.5 px-3 rounded-xl bg-input-bg border border-border focus:ring-2 focus:ring-primary focus:outline-none text-text-primary" />
+                                <input type="password" value={newPin} onChange={e => setNewPin(e.target.value)} className="w-full py-2.5 px-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none text-white" style={{ backgroundColor: '#1A202C', color: '#FFFFFF' }} />
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-text-secondary mb-1">Confirm New PIN</label>
-                                <input type="password" value={confirmPin} onChange={e => setConfirmPin(e.target.value)} className="w-full py-2.5 px-3 rounded-xl bg-input-bg border border-border focus:ring-2 focus:ring-primary focus:outline-none text-text-primary" />
+                                <input type="password" value={confirmPin} onChange={e => setConfirmPin(e.target.value)} className="w-full py-2.5 px-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none text-white" style={{ backgroundColor: '#1A202C', color: '#FFFFFF' }} />
                             </div>
                             <div className="flex justify-end gap-3 pt-2">
                                 <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-xl border border-border font-semibold text-sm hover:bg-muted text-text-secondary">Cancel</button>
