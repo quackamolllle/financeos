@@ -154,24 +154,48 @@
         };
 
         // --- API BRIDGE ---
+        const getStoredToken = () => localStorage.getItem('financeos_session') || '';
+        const setStoredToken = (t) => {
+            if (t) localStorage.setItem('financeos_session', t);
+            else localStorage.removeItem('financeos_session');
+        };
+
+        const authHeaders = (customHeaders = {}) => {
+            const token = getStoredToken();
+            const headers = { 'Content-Type': 'application/json', ...customHeaders };
+            if (token) headers['X-Session-Token'] = token;
+            return headers;
+        };
+
         const api = {
-            getAuthStatus: () => fetch('/api/auth/status').then(r => r.json()),
-            setupPin: (pin) => fetch('/api/auth/setup-pin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin }) }).then(r => r.json()),
-            login: (pin, remember) => fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin, remember }) }).then(r => r.json()),
-            logout: () => fetch('/api/auth/logout', { method: 'POST' }).then(r => r.json()),
-            changePin: (currentPin, newPin) => fetch('/api/auth/change-pin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPin, newPin }) }).then(r => r.json()),
-            getAccounts: () => fetch('/api/accounts').then(r => r.json()),
-            addAccount: (d) => fetch('/api/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json()),
-            updateAccount: (id, d) => fetch(`/api/accounts/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json()),
-            deleteAccount: (id) => fetch(`/api/accounts/${id}`, { method: 'DELETE' }).then(r => r.json()),
-            getSnapshots: () => fetch('/api/snapshots').then(r => r.json()),
-            addSnapshot: (d) => fetch('/api/snapshots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json()),
-            updateSnapshot: (id, d) => fetch(`/api/snapshots/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json()),
-            deleteSnapshot: (id) => fetch(`/api/snapshots/${id}`, { method: 'DELETE' }).then(r => r.json()),
-            getGoals: () => fetch('/api/goals').then(r => r.json()),
-            addGoal: (d) => fetch('/api/goals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json()),
-            deleteGoal: (id) => fetch(`/api/goals/${id}`, { method: 'DELETE' }).then(r => r.json()),
-            restoreBackup: (d) => fetch('/api/restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }).then(r => r.json()),
+            getAuthStatus: () => fetch('/api/auth/status', { headers: authHeaders() }).then(r => r.json()),
+            setupPin: async (pin) => {
+                const res = await fetch('/api/auth/setup-pin', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ pin }) }).then(r => r.json());
+                if (res.token) setStoredToken(res.token);
+                return res;
+            },
+            login: async (pin, remember) => {
+                const res = await fetch('/api/auth/login', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ pin, remember }) }).then(r => r.json());
+                if (res.token) setStoredToken(res.token);
+                return res;
+            },
+            logout: async () => {
+                setStoredToken(null);
+                return fetch('/api/auth/logout', { method: 'POST', headers: authHeaders() }).then(r => r.json());
+            },
+            changePin: (currentPin, newPin) => fetch('/api/auth/change-pin', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ currentPin, newPin }) }).then(r => r.json()),
+            getAccounts: () => fetch('/api/accounts', { headers: authHeaders() }).then(r => r.json()),
+            addAccount: (d) => fetch('/api/accounts', { method: 'POST', headers: authHeaders(), body: JSON.stringify(d) }).then(r => r.json()),
+            updateAccount: (id, d) => fetch(`/api/accounts/${id}`, { method: 'PUT', headers: authHeaders(), body: JSON.stringify(d) }).then(r => r.json()),
+            deleteAccount: (id) => fetch(`/api/accounts/${id}`, { method: 'DELETE', headers: authHeaders() }).then(r => r.json()),
+            getSnapshots: () => fetch('/api/snapshots', { headers: authHeaders() }).then(r => r.json()),
+            addSnapshot: (d) => fetch('/api/snapshots', { method: 'POST', headers: authHeaders(), body: JSON.stringify(d) }).then(r => r.json()),
+            updateSnapshot: (id, d) => fetch(`/api/snapshots/${id}`, { method: 'PUT', headers: authHeaders(), body: JSON.stringify(d) }).then(r => r.json()),
+            deleteSnapshot: (id) => fetch(`/api/snapshots/${id}`, { method: 'DELETE', headers: authHeaders() }).then(r => r.json()),
+            getGoals: () => fetch('/api/goals', { headers: authHeaders() }).then(r => r.json()),
+            addGoal: (d) => fetch('/api/goals', { method: 'POST', headers: authHeaders(), body: JSON.stringify(d) }).then(r => r.json()),
+            deleteGoal: (id) => fetch(`/api/goals/${id}`, { method: 'DELETE', headers: authHeaders() }).then(r => r.json()),
+            restoreBackup: (d) => fetch('/api/restore', { method: 'POST', headers: authHeaders(), body: JSON.stringify(d) }).then(r => r.json()),
         };
 
         // --- ICONS ---

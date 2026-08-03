@@ -102,6 +102,27 @@ const verifyPin = (pin, storedHash) => {
   return crypto.timingSafeEqual(buf1, buf2);
 };
 
+const SECRET = process.env.SESSION_SECRET || 'financeos_secret_key_2026';
+
+const generateSessionToken = (days = 30) => {
+  const expiresAt = Date.now() + (days * 24 * 60 * 60 * 1000);
+  const signature = crypto.createHmac('sha256', SECRET).update(String(expiresAt)).digest('hex');
+  return `${expiresAt}.${signature}`;
+};
+
+const validateSessionToken = (token) => {
+  if (!token || typeof token !== 'string' || !token.includes('.')) return false;
+  const [expiresAtStr, signature] = token.split('.');
+  const expiresAt = parseInt(expiresAtStr, 10);
+  if (isNaN(expiresAt) || Date.now() > expiresAt) return false;
+  const expectedSignature = crypto.createHmac('sha256', SECRET).update(String(expiresAtStr)).digest('hex');
+  
+  const buf1 = Buffer.from(signature, 'utf-8');
+  const buf2 = Buffer.from(expectedSignature, 'utf-8');
+  if (buf1.length !== buf2.length) return false;
+  return crypto.timingSafeEqual(buf1, buf2);
+};
+
 const getSessionToken = (req) => {
   const cookies = parseCookies(req);
   if (cookies.financeos_session) return cookies.financeos_session;
@@ -115,8 +136,13 @@ const getSessionToken = (req) => {
 const validateSession = async (req) => {
   const token = getSessionToken(req);
   if (!token) return false;
-  const session = await dbGet('SELECT * FROM sessions WHERE token = ? AND expires_at > ?', [token, Date.now()]);
-  return !!session;
+  if (validateSessionToken(token)) return true;
+  try {
+    const session = await dbGet('SELECT * FROM sessions WHERE token = ? AND expires_at > ?', [token, Date.now()]);
+    return !!session;
+  } catch (err) {
+    return false;
+  }
 };
 
 // Helper for DB queries using Promises
@@ -303,15 +329,11 @@ app.post('/api/auth/setup-pin', async (req, res) => {
     const hashed = hashPin(pin);
     await dbRun("INSERT OR REPLACE INTO settings (key, value) VALUES ('pin_hash', ?)", [hashed]);
 
-    const token = crypto.randomBytes(32).toString('hex');
-    const now = Date.now();
-    const expiresAt = now + 30 * 24 * 60 * 60 * 1000;
-    await dbRun('INSERT INTO sessions (token, created_at, expires_at) VALUES (?, ?, ?)', [token, now, expiresAt]);
-
-    await afterMutation();
-
-    const maxAgeSec = 30 * 24 * 60 * 60;
+    const days = 30;
+    const token = generateSessionToken(days);
+    const maxAgeSec = days * 24 * 60 * 60;
     res.setHeader('Set-Cookie', `financeos_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSec}`);
+    await afterMutation();
     res.json({ success: true, token });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -339,13 +361,10 @@ app.post('/api/auth/login', async (req, res) => {
       await dbRun("INSERT OR REPLACE INTO settings (key, value) VALUES ('pin_hash', ?)", [hashed]);
     }
 
-    const token = crypto.randomBytes(32).toString('hex');
-    const now = Date.now();
     const days = remember !== false ? 30 : 1;
-    const expiresAt = now + days * 24 * 60 * 60 * 1000;
-    await dbRun('INSERT INTO sessions (token, created_at, expires_at) VALUES (?, ?, ?)', [token, now, expiresAt]);
-
+    const token = generateSessionToken(days);
     const maxAgeSec = days * 24 * 60 * 60;
+
     res.setHeader('Set-Cookie', `financeos_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSec}`);
     await afterMutation();
     res.json({ success: true, token });
