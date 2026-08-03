@@ -399,16 +399,16 @@
                             )}
                         </div>
                     </div>
-                    {/* Legend grid */}
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 w-full max-w-[260px]">
+                    {/* Legend list */}
+                    <div className="flex flex-col gap-1.5 w-full max-w-[340px] mt-2">
                         {segments.map((seg, i) => (
-                            <div key={i} className={`flex items-center gap-2 cursor-pointer rounded-lg px-2 py-1.5 transition-all ${hoveredIdx === i ? 'bg-muted' : ''}`}
+                            <div key={i} className={`flex items-center justify-between cursor-pointer rounded-lg px-3 py-1.5 transition-all ${hoveredIdx === i ? 'bg-muted' : 'hover:bg-muted/40'}`}
                                 onMouseEnter={() => setHoveredIdx(i)} onMouseLeave={() => setHoveredIdx(null)}>
-                                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: seg.color }}></span>
-                                <div className="min-w-0">
-                                    <span className="text-[11px] text-text-primary font-semibold truncate block">{seg.label}</span>
-                                    <span className="text-[10px] text-text-muted font-medium">{(seg.pct * 100).toFixed(1)}%</span>
+                                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: seg.color }}></span>
+                                    <span className="text-xs font-mono font-bold text-white truncate">{seg.label}</span>
                                 </div>
+                                <span className="text-xs font-mono font-bold text-text-secondary shrink-0">{(seg.pct * 100).toFixed(1)}%</span>
                             </div>
                         ))}
                     </div>
@@ -775,11 +775,14 @@
 
             return (
                 <div className="space-y-6 pb-24 fade-in">
-                    <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                        <div><h1 className="text-3xl font-extrabold text-text-primary">Investments</h1><p className="text-text-secondary text-sm mt-1">Live portfolio tracking & cost basis.</p></div>
+                    <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-4">
+                        <div>
+                            <h1 className="text-2xl font-mono font-bold text-white uppercase tracking-wider">Investments</h1>
+                            <p className="text-text-secondary text-xs font-mono mt-1">Live portfolio tracking & cost basis.</p>
+                        </div>
                         <div className="flex gap-2">
-                            <button onClick={() => { setIsUpdating(false); setEditingAssetId(null); setAssetFormName(''); setAssetCostBasis(''); setIsAddingAsset(!isAddingAsset); }} className="bg-card border border-border text-text-primary h-10 px-4 rounded-xl font-semibold text-sm hover:bg-muted transition-all shadow-subtle flex items-center gap-1.5"><IconPlus /> Add Asset</button>
-                            <button onClick={() => { setIsAddingAsset(false); setEditingAssetId(null); setIsUpdating(!isUpdating); }} className="bg-primary text-white h-10 px-4 rounded-xl font-semibold text-sm hover:bg-primary-dark transition-all shadow-card flex items-center gap-1.5"><IconRefresh /> Update Prices</button>
+                            <button onClick={() => { setIsUpdating(false); setEditingAssetId(null); setAssetFormName(''); setAssetCostBasis(''); setIsAddingAsset(!isAddingAsset); }} className="bg-muted text-white h-8 px-4 rounded-full text-[11px] font-bold border border-border hover:bg-muted-dark transition-all flex items-center gap-1.5"><IconPlus /> Add Asset</button>
+                            <button onClick={() => { setIsAddingAsset(false); setEditingAssetId(null); setIsUpdating(!isUpdating); }} className="bg-primary text-sidebar h-8 px-4 rounded-full text-[11px] font-bold hover:bg-primary-dark transition-all flex items-center gap-1.5"><IconRefresh /> Update Prices</button>
                         </div>
                     </header>
 
@@ -803,20 +806,37 @@
 
                     {/* Portfolio Summary */}
                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-                        <div className="lg:col-span-2 bg-card rounded-3xl p-6 shadow-card border border-border/40 flex flex-col items-center justify-center relative min-h-[340px]">
-                            <h3 className="font-bold text-sm text-text-secondary uppercase tracking-wider absolute top-6 left-6">Allocation</h3>
-                            <div className="mt-8 w-full flex justify-center">
-                                {donutData.length > 0 ? <InteractiveDonut data={donutData} size={180} /> : <div className="w-44 h-44 rounded-full border-[18px] border-muted"></div>}
+                        <div className="lg:col-span-2 bg-card rounded-2xl p-6 shadow-card border border-border flex flex-col justify-between min-h-[340px]">
+                            <h3 className="font-mono text-[11px] font-bold text-text-secondary uppercase tracking-widest mb-2">ALLOCATION</h3>
+                            <div className="flex-1 flex items-center justify-center py-2">
+                                {donutData.length > 0 ? <InteractiveDonut data={donutData} size={170} /> : <div className="w-40 h-40 rounded-full border-[14px] border-muted"></div>}
                             </div>
                         </div>
 
-                        <div className="lg:col-span-3 bg-gradient-to-br from-primary to-[#3B5AE5] text-white rounded-3xl p-6 md:p-8 shadow-float relative overflow-hidden flex flex-col justify-between min-h-[280px]">
+                        <div className="lg:col-span-3 bg-card rounded-2xl p-6 md:p-8 shadow-card border border-border relative overflow-hidden flex flex-col justify-between min-h-[340px]">
                             <div className="relative z-10 flex flex-col justify-between h-full">
-                                <div><h3 className="text-blue-200 text-xs font-semibold uppercase tracking-wider mb-1">Total Portfolio Value</h3><p className="text-4xl md:text-5xl font-extrabold">{formatCurr(totalInvested)}</p></div>
-                                <div className="flex gap-6 mt-auto pt-4">
-                                    <div><p className="text-blue-200/80 text-[11px] uppercase tracking-wider font-semibold mb-0.5">Return</p><p className="font-bold text-lg">{portfolioReturn >= 0 ? '+' : ''}{formatCurr(portfolioReturn)}</p></div>
-                                    <div><p className="text-blue-200/80 text-[11px] uppercase tracking-wider font-semibold mb-0.5">Return %</p><p className="font-bold text-lg">{portfolioReturn >= 0 ? '+' : ''}{portfolioReturnPct.toFixed(2)}%</p></div>
-                                    <div className="hidden sm:block"><p className="text-blue-200/80 text-[11px] uppercase tracking-wider font-semibold mb-0.5">Cost Basis</p><p className="font-bold text-lg">{formatCurr(totalCostBasis)}</p></div>
+                                <div>
+                                    <h3 className="text-text-secondary text-[11px] font-mono font-bold uppercase tracking-widest mb-1">TOTAL PORTFOLIO VALUE</h3>
+                                    <p className="text-4xl md:text-5xl font-mono font-bold tracking-tight text-white">{formatCurr(totalInvested)}</p>
+                                </div>
+                                
+                                <div className="grid grid-cols-3 gap-4 mt-auto pt-6 border-t border-border/50">
+                                    <div>
+                                        <p className="text-text-secondary text-[10px] font-mono uppercase tracking-widest font-bold mb-1">Return</p>
+                                        <p className={`font-mono font-bold text-lg ${portfolioReturn >= 0 ? 'text-success' : 'text-destructive'}`}>
+                                            {portfolioReturn >= 0 ? '+' : ''}{formatCurr(portfolioReturn)}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-text-secondary text-[10px] font-mono uppercase tracking-widest font-bold mb-1">Return %</p>
+                                        <p className={`font-mono font-bold text-lg ${portfolioReturn >= 0 ? 'text-success' : 'text-destructive'}`}>
+                                            {portfolioReturn >= 0 ? '+' : ''}{portfolioReturnPct.toFixed(2)}%
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-text-secondary text-[10px] font-mono uppercase tracking-widest font-bold mb-1">Cost Basis</p>
+                                        <p className="font-mono font-bold text-lg text-white">{formatCurr(totalCostBasis)}</p>
+                                    </div>
                                 </div>
                             </div>
                             <OverlayAreaChart data={portfolioHistory} />
@@ -1457,7 +1477,7 @@
 
                     {/* Main Content */}
                     <main className="flex-1 overflow-y-auto p-5 md:p-8 pb-28 md:pb-8 relative">
-                        <div className="max-w-5xl mx-auto">
+                        <div className="w-full max-w-[1600px] mx-auto px-2 md:px-6">
                             {loading ? <LoadingDashboard /> : (
                                 <>
                                     {activeTab === 'overview' && <OverviewTab accounts={data.accounts} snapshots={data.snapshots} loadData={loadData} />}
