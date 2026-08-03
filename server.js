@@ -69,9 +69,9 @@ const uploadDbToBlob = async () => {
       const fileData = fs.readFileSync(dbPath);
       let res;
       try {
-        res = await put('financeos.db', fileData, { access: 'public', addRandomSuffix: false });
+        res = await put('financeos.db', fileData, { access: 'public', addRandomSuffix: false, allowOverwrite: true });
       } catch (pubErr) {
-        res = await put('financeos.db', fileData, { access: 'private', addRandomSuffix: false });
+        res = await put('financeos.db', fileData, { access: 'private', addRandomSuffix: false, allowOverwrite: true });
       }
       lastBlobSyncTime = Date.now();
       console.log('[Cloud Sync] Uploaded financeos.db to Vercel Blob:', res.url);
