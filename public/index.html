@@ -16,29 +16,34 @@
                     colors: {
                         background: 'var(--bg)',
                         card: 'var(--card)',
-                        primary: '#4F6EF7',
-                        'primary-dark': '#3B5AE5',
-                        success: '#10B981',
-                        'success-light': 'var(--success-light)',
-                        destructive: '#EF4444',
-                        'destructive-light': 'var(--destructive-light)',
+                        primary: '#00E599',
+                        'primary-dark': '#00B377',
+                        success: '#00E599',
+                        'success-light': 'rgba(0, 229, 153, 0.1)',
+                        destructive: '#F43F5E',
+                        'destructive-light': 'rgba(244, 63, 94, 0.1)',
                         warning: '#F59E0B',
+                        info: '#0EA5E9',
+                        purple: '#A855F7',
                         muted: 'var(--muted)',
                         'muted-dark': 'var(--muted-dark)',
                         border: 'var(--border)',
                         'text-primary': 'var(--text-primary)',
                         'text-secondary': 'var(--text-secondary)',
                         'text-muted': 'var(--text-muted)',
-                        sidebar: '#1E293B',
-                        'sidebar-hover': '#334155',
-                        'sidebar-active': '#4F6EF7',
+                        sidebar: '#0B0F15',
+                        'sidebar-hover': '#161B22',
+                        'sidebar-active': '#00E599',
                     },
-                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    fontFamily: { 
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'] 
+                    },
                     boxShadow: {
-                        'subtle': '0 1px 3px 0 rgba(0,0,0,0.04), 0 1px 2px -1px rgba(0,0,0,0.03)',
+                        'subtle': '0 1px 3px 0 rgba(0,0,0,0.2), 0 1px 2px -1px rgba(0,0,0,0.1)',
                         'card': 'var(--shadow-card)',
                         'float': 'var(--shadow-float)',
-                        'glow': '0 0 20px rgba(79, 110, 247, 0.15)',
+                        'glow': '0 0 20px rgba(0, 229, 153, 0.2)',
                     }
                 }
             }
@@ -46,39 +51,20 @@
     </script>
 
     <style>
-        :root {
-            --bg: #F4F5F7;
-            --card: #FFFFFF;
-            --muted: #F1F2F5;
-            --muted-dark: #E4E6EB;
-            --border: #E2E4E9;
-            --text-primary: #0F172A;
-            --text-secondary: #64748B;
-            --text-muted: #94A3B8;
-            --success-light: #D1FAE5;
-            --destructive-light: #FEE2E2;
-            --shadow-card: 0 4px 16px -2px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
-            --shadow-float: 0 12px 40px -8px rgba(0,0,0,0.12), 0 4px 12px -4px rgba(0,0,0,0.06);
-            --input-bg: #F1F2F5;
-            --tooltip-bg: rgba(255,255,255,0.95);
-            --chart-grid: #E2E4E9;
-        }
-        .dark {
-            --bg: #0B0F1A;
-            --card: #141926;
-            --muted: #1C2235;
-            --muted-dark: #252D42;
-            --border: #2A3350;
-            --text-primary: #F1F5F9;
+        :root, .dark {
+            --bg: #0B0F15;
+            --card: #12161E;
+            --muted: #1A202C;
+            --muted-dark: #232B39;
+            --border: #232B39;
+            --text-primary: #FFFFFF;
             --text-secondary: #94A3B8;
             --text-muted: #64748B;
-            --success-light: #064E3B;
-            --destructive-light: #450A0A;
-            --shadow-card: 0 4px 16px -2px rgba(0,0,0,0.3), 0 2px 4px -2px rgba(0,0,0,0.2);
-            --shadow-float: 0 12px 40px -8px rgba(0,0,0,0.5), 0 4px 12px -4px rgba(0,0,0,0.3);
-            --input-bg: #1C2235;
-            --tooltip-bg: rgba(20,25,38,0.95);
-            --chart-grid: #2A3350;
+            --shadow-card: 0 4px 16px -2px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3);
+            --shadow-float: 0 12px 40px -8px rgba(0,0,0,0.6), 0 4px 12px -4px rgba(0,0,0,0.4);
+            --input-bg: #1A202C;
+            --tooltip-bg: rgba(18, 22, 30, 0.95);
+            --chart-grid: rgba(255, 255, 255, 0.03);
         }
         body { background-color: var(--bg); color: var(--text-primary); margin: 0; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s ease, color 0.3s ease; }
         ::-webkit-scrollbar { width: 6px; }
@@ -449,29 +435,29 @@
         };
 
         // --- STAT CARD ---
-        const StatCard = ({ label, value, valueClass, staggerClass, icon }) => (
-            <div className={`bg-card p-5 rounded-2xl shadow-subtle border border-border/40 lift-on-hover ${staggerClass}`}>
-                <div className="flex items-center gap-2 mb-2">
-                    {icon && <span className="text-text-muted">{icon}</span>}
-                    <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{label}</span>
+                const StatCard = ({ label, value, valueClass, staggerClass, trendData = [] }) => {
+            const isPos = !valueClass || valueClass.includes('success') || valueClass.includes('primary');
+            const color = valueClass && valueClass.includes('success') ? '#00E599' : 
+                          valueClass && valueClass.includes('destructive') ? '#F43F5E' : 
+                          valueClass && valueClass.includes('warning') ? '#F59E0B' : 
+                          valueClass && valueClass.includes('purple') ? '#A855F7' : 
+                          valueClass && valueClass.includes('info') ? '#0EA5E9' : '#00E599';
+            
+            return (
+                <div className={`bg-card p-5 rounded-xl shadow-card border border-border flex flex-col justify-between h-[100px] ${staggerClass}`}>
+                    <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono font-bold text-text-secondary uppercase tracking-widest">{label}</span>
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }}></div>
+                    </div>
+                    <div className="flex items-end justify-between">
+                        <span className={`text-2xl font-mono font-bold ${valueClass || 'text-white'}`}>{value}</span>
+                        <svg width="60" height="20" viewBox="0 0 60 20" className="opacity-80">
+                            <path d={isPos ? "M0,15 Q10,18 20,12 T40,10 T60,5" : "M0,5 Q10,2 20,8 T40,10 T60,15"} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                    </div>
                 </div>
-                <span className={`text-2xl font-bold ${valueClass || 'text-text-primary'}`}>{value}</span>
-            </div>
-        );
-
-        // --- INPUT CLASSES ---
-        const inputCls = "w-full h-12 rounded-xl px-4 outline-none focus:ring-2 focus:ring-primary/40 font-medium border border-transparent focus:border-primary/30 transition-all";
-        const inputBg = { backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)' };
-
-        // --- TABS ---
-        const OverviewTab = ({ accounts, snapshots, loadData }) => {
-            const formRef = useRef(null);
-            const [isAdding, setIsAdding] = useState(false);
-            const [editingId, setEditingId] = useState(null);
-            const [snapDate, setSnapDate] = useState(new Date().toISOString().split('T')[0]);
-            const [snapIncome, setSnapIncome] = useState('');
-            const [snapNotes, setSnapNotes] = useState('');
-            const [snapBalances, setSnapBalances] = useState({});
+            );
+        };
             const [expandedSnapId, setExpandedSnapId] = useState(null);
             const [compareBaseId, setCompareBaseId] = useState(null);
             const [compareTargetId, setCompareTargetId] = useState(null);
@@ -537,248 +523,207 @@
 
             return (
                 <div className="space-y-6 pb-24 fade-in" ref={formRef}>
-                    {/* Hero Section */}
-                    <header className="relative bg-card rounded-3xl p-6 md:p-8 shadow-card border border-border/40 mesh-gradient overflow-hidden">
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 relative z-10">
-                            <div>
-                                <h2 className="text-xs font-bold text-primary uppercase tracking-widest mb-2">Total Net Worth</h2>
-                                <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-text-primary">{formatCurr(currentNW)}</h1>
-                                {snapshots.length > 1 && (
-                                    <div className={`flex items-center gap-2 mt-2 ${monthlySaved >= 0 ? 'text-success' : 'text-destructive'}`}>
-                                        {monthlySaved >= 0 ? <IconTrendUp /> : <IconTrendDown />}
-                                        <span className="text-sm font-bold">{monthlySaved >= 0 ? '+' : ''}{formatCurr(monthlySaved)}</span>
-                                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-current/10">{nwChangePct >= 0 ? '+' : ''}{nwChangePct.toFixed(1)}%</span>
-                                        <span className="text-xs text-text-muted font-medium">vs last month</span>
-                                    </div>
-                                )}
-                            </div>
-                            <button onClick={() => { resetForm(); setIsAdding(!isAdding); }} className="bg-text-primary text-white h-11 px-6 rounded-2xl font-semibold flex items-center gap-2 hover:opacity-90 transition-all active:scale-[0.97] shadow-card text-sm dark:bg-primary dark:hover:bg-primary-dark">
-                                <IconPlus /> Log Snapshot
+                    {/* Top Header */}
+                    <header className="flex justify-between items-center mb-4">
+                        <div className="flex items-center gap-4 text-[10px] font-mono text-text-muted tracking-widest uppercase">
+                            <span className="text-primary font-bold">FINANCEOS • LIVE</span>
+                            <span className="hidden md:inline">LISBOA / EUR · {new Date().toLocaleDateString('en-US', {month:'short', year:'numeric'}).toUpperCase()} · SNAPSHOT #{snapshots.length}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button className="bg-muted text-white h-8 px-4 rounded-full text-[11px] font-bold border border-border hover:bg-muted-dark transition-all">Export</button>
+                            <button onClick={() => { resetForm(); setIsAdding(!isAdding); }} className="bg-primary text-sidebar h-8 px-4 rounded-full text-[11px] font-bold hover:bg-primary-dark transition-all">
+                                + Log Snapshot
                             </button>
                         </div>
                     </header>
 
-                    {/* Snapshot Form */}
-                    {isAdding && (
-                        <form onSubmit={handleSave} className="slide-down bg-card p-6 md:p-8 rounded-3xl shadow-float border border-primary/20 flex flex-col gap-5 relative overflow-hidden">
-                            <div className={`absolute top-0 left-0 w-full h-1 ${editingId ? 'bg-warning' : 'bg-primary'}`}></div>
+                    {/* Main Chart Card (Vitals Style) */}
+                    <div className="bg-card rounded-2xl shadow-card border border-border p-6 relative overflow-hidden">
+                        <div className="flex justify-between items-start relative z-10 mb-4">
                             <div>
-                                <h3 className="font-bold text-lg text-text-primary">{editingId ? '✏️ Edit Snapshot' : '📸 New Snapshot'}</h3>
-                                <p className="text-sm text-text-secondary mt-1">Values pre-filled from your last snapshot.</p>
-                            </div>
-                            <div className="flex flex-wrap gap-4">
-                                <div className="flex-1 min-w-[180px]">
-                                    <label className="text-xs font-bold text-text-secondary mb-2 block uppercase tracking-wider">Date</label>
-                                    <input required type="date" value={snapDate} onChange={e => setSnapDate(e.target.value)} className={inputCls} style={inputBg} />
-                                </div>
-                                <div className="flex-1 min-w-[180px]">
-                                    <label className="text-xs font-bold text-text-secondary mb-2 block uppercase tracking-wider">Monthly Income</label>
-                                    <input required type="number" step="0.01" value={snapIncome} onChange={e => setSnapIncome(e.target.value)} className={inputCls} style={inputBg} placeholder="€0.00" />
-                                </div>
-                            </div>
-                            {/* Notes field */}
-                            <div>
-                                <label className="text-xs font-bold text-text-secondary mb-2 block uppercase tracking-wider">📝 Notes <span className="text-text-muted font-normal normal-case">(optional)</span></label>
-                                <textarea value={snapNotes} onChange={e => setSnapNotes(e.target.value)} rows="2" className="w-full rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary/40 font-medium border border-transparent focus:border-primary/30 transition-all resize-none text-sm" style={inputBg} placeholder="e.g. Got annual bonus, paid insurance renewal..." />
-                            </div>
-                            {cashAccounts.length > 0 && (
-                                <div>
-                                    <label className="text-xs font-bold text-text-secondary mb-3 block uppercase tracking-wider">💳 Checking & Spending</label>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                        {cashAccounts.map(acc => (
-                                            <div key={acc.id} className="p-4 rounded-xl border border-transparent focus-within:border-primary/30 transition-all" style={{ backgroundColor: 'var(--input-bg)' }}>
-                                                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{acc.name}</span>
-                                                <div className="flex items-center mt-1.5"><span className="text-text-muted font-medium mr-2">€</span>
-                                                    <input required type="number" step="0.01" value={snapBalances[acc.id] !== undefined ? snapBalances[acc.id] : ''} onChange={e => setSnapBalances({...snapBalances, [acc.id]: e.target.value})} className="w-full bg-transparent outline-none font-bold text-lg text-text-primary" placeholder="0.00" />
-                                                </div>
-                                            </div>
-                                        ))}
+                                <h2 className="text-[10px] font-mono text-text-secondary uppercase tracking-widest mb-1">Total Net Worth</h2>
+                                <h1 className="text-4xl md:text-5xl font-mono font-bold tracking-tight text-white">{formatCurr(currentNW)}</h1>
+                                {snapshots.length > 1 && (
+                                    <div className={`flex items-center gap-2 mt-2 font-mono text-xs ${monthlySaved >= 0 ? 'text-success' : 'text-destructive'}`}>
+                                        <span>{monthlySaved >= 0 ? '▲' : '▼'} {monthlySaved >= 0 ? '+' : ''}{formatCurr(monthlySaved)}</span>
+                                        <span className="text-text-secondary">/ {nwChangePct >= 0 ? '+' : ''}{nwChangePct.toFixed(1)}% vs last month</span>
                                     </div>
-                                </div>
-                            )}
-                            {investmentAccounts.length > 0 && (
-                                <div>
-                                    <label className="text-xs font-bold text-text-secondary mb-3 block uppercase tracking-wider">📈 Investments</label>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                        {investmentAccounts.map(acc => (
-                                            <div key={acc.id} className="p-4 rounded-xl border border-transparent focus-within:border-primary/30 transition-all" style={{ backgroundColor: 'var(--input-bg)' }}>
-                                                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{acc.name}</span>
-                                                <div className="flex items-center mt-1.5"><span className="text-text-muted font-medium mr-2">€</span>
-                                                    <input required type="number" step="0.01" value={snapBalances[acc.id] !== undefined ? snapBalances[acc.id] : ''} onChange={e => setSnapBalances({...snapBalances, [acc.id]: e.target.value})} className="w-full bg-transparent outline-none font-bold text-lg text-text-primary" placeholder="0.00" />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                            <div className="flex justify-end gap-3 pt-3 border-t border-border/50">
-                                <button type="button" onClick={resetForm} className="h-10 px-5 bg-muted text-text-secondary rounded-xl font-semibold text-sm hover:bg-muted-dark transition-colors">Cancel</button>
-                                <button type="submit" className={`h-10 px-5 text-white rounded-xl font-semibold text-sm shadow-md transition-all ${editingId ? 'bg-warning hover:bg-amber-600' : 'bg-primary hover:bg-primary-dark'}`}>{editingId ? 'Save Changes' : 'Save Snapshot'}</button>
+                                )}
                             </div>
-                        </form>
-                    )}
-
-                    {/* Stat Cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <StatCard label="Monthly Saved" value={`${monthlySaved > 0 ? '+' : ''}${formatCurr(monthlySaved)}`} valueClass={monthlySaved >= 0 ? 'text-success' : 'text-destructive'} staggerClass="stagger-1" />
-                        <StatCard label="Savings Rate" value={`${savedPct.toFixed(1)}%`} valueClass={savedPct >= 20 ? 'text-success' : savedPct > 0 ? 'text-text-primary' : 'text-destructive'} staggerClass="stagger-2" />
-                        <StatCard label="Monthly Spent" value={formatCurr(monthlySpent)} staggerClass="stagger-3" />
-                        <StatCard label="Monthly Income" value={formatCurr(latestIncome)} staggerClass="stagger-4" icon={<IconWallet />} />
-                    </div>
-
-                    {/* Wealth Allocation Chart */}
-                    <div className="bg-card rounded-3xl shadow-card border border-border/40 p-6 md:p-8">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-lg text-text-primary">Wealth Allocation</h3>
-                            <span className="text-[11px] text-text-muted bg-muted px-3 py-1 rounded-full font-medium">Hover to inspect</span>
+                            <div className="text-right hidden md:block">
+                                <div className="text-[10px] font-mono text-text-secondary uppercase tracking-widest mb-1">90-Day Trend</div>
+                                <div className="text-info text-xs font-bold font-mono">stable ↗</div>
+                            </div>
                         </div>
-                        <div className="w-full h-[300px] flex items-center justify-center">
-                            {snapshots.length > 0 ? <StackedAreaChart snapshots={groupedSnapshots} accounts={groupedAccounts} /> : <p className="text-text-muted text-sm font-medium">Log your first snapshot to see your allocation chart.</p>}
+                        
+                        <div className="w-full h-[240px] flex items-center justify-center -mx-2">
+                            {snapshots.length > 0 ? <StackedAreaChart snapshots={groupedSnapshots} accounts={groupedAccounts} /> : <p className="text-text-muted text-sm font-medium">Log your first snapshot.</p>}
                         </div>
-                        {/* Legend */}
+
                         {groupedAccounts.length > 0 && (
-                            <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-border/30 justify-center">
-                                {groupedAccounts.map((g, i) => (
-                                    <div key={g.id} className="flex items-center gap-2">
-                                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: g.color }}></span>
-                                        <span className="text-xs font-semibold text-text-secondary">{g.name}</span>
-                                    </div>
-                                ))}
+                            <div className="flex justify-between items-center mt-2 border-t border-border/50 pt-3">
+                                <div className="flex flex-wrap gap-4">
+                                    {groupedAccounts.map((g, i) => (
+                                        <div key={g.id} className="flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: g.color }}></span>
+                                            <span className="text-[10px] font-mono font-bold text-info">{g.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="text-[10px] font-mono font-bold text-text-secondary uppercase tracking-widest hidden md:block">
+                                    Jun - Jul
+                                </div>
                             </div>
                         )}
                     </div>
 
-                    {/* Monthly Comparison */}
-                    {snapshots.length >= 2 && (
-                        <div>
-                            <h3 className="font-bold text-lg text-text-primary mb-3">Monthly Comparison</h3>
-                            <div className="bg-card rounded-3xl shadow-card border border-border/40 p-5 md:p-6 mb-8">
-                                <div className="flex flex-col md:flex-row gap-4 mb-6">
-                                    <div className="flex-1">
-                                        <label className="text-xs font-bold text-text-secondary mb-2 block uppercase tracking-wider">Compare From</label>
-                                        <select value={compareBaseId || ''} onChange={e => setCompareBaseId(Number(e.target.value))} className="w-full h-11 rounded-xl px-4 outline-none border border-border/50 bg-muted/30 text-sm font-semibold text-text-primary transition-all">
-                                            {[...snapshots].reverse().map(s => <option key={s.id} value={s.id}>{new Date(s.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="flex items-center justify-center pt-6 md:pt-0"><IconArrowRight className="text-text-muted rotate-90 md:rotate-0" /></div>
-                                    <div className="flex-1">
-                                        <label className="text-xs font-bold text-text-secondary mb-2 block uppercase tracking-wider">Compare To</label>
-                                        <select value={compareTargetId || ''} onChange={e => setCompareTargetId(Number(e.target.value))} className="w-full h-11 rounded-xl px-4 outline-none border border-border/50 bg-muted/30 text-sm font-semibold text-text-primary transition-all">
-                                            {[...snapshots].reverse().map(s => <option key={s.id} value={s.id}>{new Date(s.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</option>)}
-                                        </select>
-                                    </div>
+                    {/* Stat Cards Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <StatCard label="Saved / Mo" value={`${monthlySaved > 0 ? '+' : ''}${formatCurr(monthlySaved)}`} valueClass={monthlySaved >= 0 ? 'text-success' : 'text-destructive'} staggerClass="stagger-1" />
+                        <StatCard label="Savings Rate" value={`${savedPct.toFixed(1)}%`} valueClass="text-purple" staggerClass="stagger-2" />
+                        <StatCard label="Spent / Mo" value={formatCurr(monthlySpent)} valueClass="text-warning" staggerClass="stagger-3" />
+                        <StatCard label="Income / Mo" value={formatCurr(latestIncome)} valueClass="text-info" staggerClass="stagger-4" />
+                    </div>
+
+                    {/* Snapshot Form */}
+                    {isAdding && (
+                        <form onSubmit={handleSave} className="slide-down bg-card p-6 md:p-8 rounded-2xl shadow-float border border-border flex flex-col gap-5 relative overflow-hidden mb-6">
+                            <div className={`absolute top-0 left-0 w-full h-1 ${editingId ? 'bg-warning' : 'bg-primary'}`}></div>
+                            <div>
+                                <h3 className="font-bold text-lg text-white font-mono">{editingId ? '✏️ EDIT SNAPSHOT' : '📸 NEW SNAPSHOT'}</h3>
+                            </div>
+                            <div className="flex flex-wrap gap-4">
+                                <div className="flex-1 min-w-[180px]">
+                                    <label className="text-[10px] font-bold font-mono text-text-secondary mb-2 block uppercase tracking-widest">Date</label>
+                                    <input required type="date" value={snapDate} onChange={e => setSnapDate(e.target.value)} className={inputCls} style={inputBg} />
                                 </div>
-                                {compareBaseId && compareTargetId && (
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left text-sm whitespace-nowrap">
-                                            <thead>
-                                                <tr className="border-b border-border/40 text-text-muted text-[11px] uppercase tracking-wider font-bold">
-                                                    <th className="pb-3 pr-4">Account</th>
-                                                    <th className="pb-3 px-4 text-right">From</th>
-                                                    <th className="pb-3 px-4 text-right">To</th>
-                                                    <th className="pb-3 pl-4 text-right">Diff</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-border/20">
-                                                {accounts.map((acc, idx) => {
-                                                    const baseSnap = snapshots.find(s => s.id === compareBaseId);
-                                                    const targetSnap = snapshots.find(s => s.id === compareTargetId);
-                                                    if(!baseSnap || !targetSnap) return null;
-                                                    const baseVal = baseSnap.balances[acc.id] || 0;
-                                                    const targetVal = targetSnap.balances[acc.id] || 0;
-                                                    const diff = targetVal - baseVal;
-                                                    if(baseVal === 0 && targetVal === 0) return null;
-                                                    const pct = baseVal !== 0 ? (diff / baseVal) * 100 : (diff > 0 ? 100 : 0);
-                                                    return (
-                                                        <tr key={acc.id} className="group hover:bg-muted/20 transition-colors">
-                                                            <td className="py-3 pr-4 font-semibold text-text-primary"><div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{backgroundColor: ACCOUNT_COLORS[idx % ACCOUNT_COLORS.length]}}></div>{acc.name}</div></td>
-                                                            <td className="py-3 px-4 text-right text-text-secondary">{formatCurr(baseVal)}</td>
-                                                            <td className="py-3 px-4 text-right font-medium text-text-primary">{formatCurr(targetVal)}</td>
-                                                            <td className={`py-3 pl-4 text-right font-bold flex items-center justify-end gap-1.5 ${diff > 0 ? 'text-success' : diff < 0 ? 'text-destructive' : 'text-text-muted'}`}>
-                                                                {diff !== 0 && (diff > 0 ? <IconArrowRight className="w-3 h-3 -rotate-45" /> : <IconArrowRight className="w-3 h-3 rotate-45" />)}
-                                                                {diff > 0 ? '+' : ''}{formatCurr(diff)}
-                                                                <span className="text-[10px] bg-current/10 px-1.5 py-0.5 rounded-md ml-1">{diff > 0 ? '+' : ''}{pct.toFixed(1)}%</span>
-                                                            </td>
-                                                        </tr>
-                                                    )
-                                                })}
-                                                {(()=>{
-                                                    const baseSnap = snapshots.find(s => s.id === compareBaseId);
-                                                    const targetSnap = snapshots.find(s => s.id === compareTargetId);
-                                                    if(!baseSnap || !targetSnap) return null;
-                                                    const baseTotal = calcNW(baseSnap.balances);
-                                                    const targetTotal = calcNW(targetSnap.balances);
-                                                    const diffTotal = targetTotal - baseTotal;
-                                                    const pctTotal = baseTotal !== 0 ? (diffTotal / baseTotal) * 100 : (diffTotal > 0 ? 100 : 0);
-                                                    return (
-                                                        <tr className="border-t-2 border-border/50">
-                                                            <td className="py-3 pr-4 font-bold text-text-primary uppercase tracking-widest text-xs">Total Net Worth</td>
-                                                            <td className="py-3 px-4 text-right text-text-secondary font-bold">{formatCurr(baseTotal)}</td>
-                                                            <td className="py-3 px-4 text-right font-bold text-text-primary">{formatCurr(targetTotal)}</td>
-                                                            <td className={`py-3 pl-4 text-right font-extrabold flex items-center justify-end gap-1.5 ${diffTotal >= 0 ? 'text-success' : 'text-destructive'}`}>
-                                                                {diffTotal !== 0 && (diffTotal > 0 ? <IconArrowRight className="w-3 h-3 -rotate-45" /> : <IconArrowRight className="w-3 h-3 rotate-45" />)}
-                                                                {diffTotal > 0 ? '+' : ''}{formatCurr(diffTotal)}
-                                                                <span className="text-[10px] bg-current/10 px-1.5 py-0.5 rounded-md ml-1">{diffTotal > 0 ? '+' : ''}{pctTotal.toFixed(1)}%</span>
-                                                            </td>
-                                                        </tr>
-                                                    )
-                                                })()}
-                                            </tbody>
-                                        </table>
+                                <div className="flex-1 min-w-[180px]">
+                                    <label className="text-[10px] font-bold font-mono text-text-secondary mb-2 block uppercase tracking-widest">Monthly Income</label>
+                                    <input required type="number" step="0.01" value={snapIncome} onChange={e => setSnapIncome(e.target.value)} className={inputCls} style={inputBg} placeholder="€0.00" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold font-mono text-text-secondary mb-2 block uppercase tracking-widest">📝 Notes</label>
+                                <textarea value={snapNotes} onChange={e => setSnapNotes(e.target.value)} rows="2" className="w-full rounded-xl px-4 py-3 outline-none focus:ring-1 focus:ring-primary font-medium border border-border bg-input transition-all resize-none text-sm text-white" style={inputBg} />
+                            </div>
+                            
+                            <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                                <button type="button" onClick={resetForm} className="h-9 px-5 bg-muted text-white rounded-full font-bold font-mono text-[11px] hover:bg-muted-dark transition-colors border border-border">CANCEL</button>
+                                <button type="submit" className={`h-9 px-5 text-sidebar rounded-full font-bold font-mono text-[11px] transition-all ${editingId ? 'bg-warning hover:opacity-90' : 'bg-primary hover:bg-primary-dark'}`}>{editingId ? 'SAVE CHANGES' : 'SAVE SNAPSHOT'}</button>
+                            </div>
+                        </form>
+                    )}
+
+                    {/* Bottom Sections: Monthly Comparison & Allocation */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Monthly Comparison Placeholder (We will adapt the existing one) */}
+                        <div className="bg-card rounded-2xl shadow-card border border-border p-6 flex flex-col">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="font-bold text-[11px] font-mono text-white uppercase tracking-widest">Monthly Comparison</h3>
+                                <span className="text-[10px] font-mono text-text-secondary uppercase">Jun → Jul</span>
+                            </div>
+                            
+
+                            <div className="flex-1">
+                                {snapshots.length >= 2 ? (
+                                    <div className="space-y-4">
+                                        {groupedAccounts.map(g => {
+                                            const latest = snapshots[snapshots.length-1];
+                                            const prev = snapshots[snapshots.length-2];
+                                            const valLatest = latest.balances[g.id] || 0;
+                                            const valPrev = prev.balances[g.id] || 0;
+                                            const diff = valLatest - valPrev;
+                                            const pct = valPrev !== 0 ? (diff / valPrev) * 100 : (diff > 0 ? 100 : 0);
+                                            const isPos = diff >= 0;
+                                            return (
+                                                <div key={g.id}>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-[11px] font-mono font-bold text-text-secondary uppercase">{g.name}</span>
+                                                        <span className={`text-[11px] font-mono font-bold ${isPos ? 'text-success' : 'text-destructive'}`}>
+                                                            {isPos ? '+' : ''}{formatCurr(diff)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                                                        <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, Math.max(5, (valLatest / (currentNW || 1)) * 100))}%`, backgroundColor: g.color }}></div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
+                                ) : (
+                                    <p className="text-text-muted text-[11px] font-mono">Need 2 snapshots to compare.</p>
                                 )}
                             </div>
                         </div>
-                    )}
 
-                    {/* Snapshot History */}
+                        {/* Allocation Section (Vitals Style) */}
+                        <div className="bg-card rounded-2xl shadow-card border border-border p-6 flex flex-col">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="font-bold text-[11px] font-mono text-white uppercase tracking-widest">Allocation</h3>
+                            </div>
+                            <div className="flex-1 flex flex-col justify-center gap-6">
+                                {groupedAccounts.map(g => {
+                                    const latest = snapshots.length > 0 ? snapshots[snapshots.length-1] : null;
+                                    const val = latest ? latest.balances[g.id] || 0 : 0;
+                                    const pct = currentNW > 0 ? (val / currentNW) * 100 : 0;
+                                    return (
+                                        <div key={g.id} className="flex items-center gap-4">
+                                            <div className="relative w-12 h-12 flex-shrink-0">
+                                                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                                                    <circle cx="18" cy="18" r="15.91549430918954" fill="transparent" stroke="var(--muted)" strokeWidth="3"></circle>
+                                                    <circle cx="18" cy="18" r="15.91549430918954" fill="transparent" stroke={g.color} strokeWidth="3" strokeDasharray={`${pct} ${100 - pct}`} strokeDashoffset="0"></circle>
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1 flex justify-between items-center">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[11px] font-mono font-bold text-text-secondary uppercase">{g.name}</span>
+                                                    <span className="text-xs font-mono font-bold text-white">{formatCurr(val)}</span>
+                                                </div>
+                                                <span className="text-[11px] font-mono font-bold text-white">{pct.toFixed(0)}%</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Snapshot History (Compact) */}
                     <div>
-                        <h3 className="font-bold text-lg text-text-primary mb-3">Snapshot History</h3>
-                        <div className="bg-card rounded-3xl shadow-card border border-border/40 overflow-hidden">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-[11px] font-mono text-white uppercase tracking-widest">Snapshot History</h3>
+                        </div>
+                        <div className="bg-card rounded-2xl shadow-card border border-border overflow-hidden">
                             {[...snapshots].reverse().map((snap) => {
                                 const snapNW = calcNW(snap.balances); const isExpanded = expandedSnapId === snap.id;
                                 return (
-                                    <div key={snap.id} className="border-b border-border/30 last:border-0">
-                                        <div onClick={() => setExpandedSnapId(isExpanded ? null : snap.id)} className="flex items-center justify-between p-4 md:p-5 hover:bg-muted/40 transition-colors cursor-pointer">
-                                            <div>
-                                                <p className="font-bold text-text-primary">{new Date(snap.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <p className="text-xs text-text-muted">Income: {formatCurr(snap.income)}</p>
-                                                    {snap.notes && <span className="inline-flex items-center gap-1 text-xs text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded-md"><IconNote /> Note</span>}
-                                                </div>
+                                    <div key={snap.id} className="border-b border-border last:border-0">
+                                        <div onClick={() => setExpandedSnapId(isExpanded ? null : snap.id)} className="flex items-center justify-between p-4 hover:bg-muted/40 transition-colors cursor-pointer">
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-[11px] font-mono font-bold text-text-secondary">{new Date(snap.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()}</span>
+                                                <span className="text-[11px] font-mono text-primary/70">{snap.notes ? 'HAS NOTES' : ''}</span>
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                <p className="font-bold text-text-primary">{formatCurr(snapNW)}</p>
-                                                <IconChevronDown className={`text-text-muted transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-sm font-mono font-bold text-white">{formatCurr(snapNW)}</span>
                                             </div>
                                         </div>
                                         {isExpanded && (
-                                            <div className="px-4 md:px-5 pb-5 bg-muted/20 slide-down">
-                                                <div className="pt-4 border-t border-border/30">
-                                                    {/* Notes display */}
-                                                    {snap.notes && (
-                                                        <div className="mb-4 p-3 rounded-xl border border-primary/10 bg-primary/5">
-                                                            <div className="flex items-center gap-1.5 mb-1.5"><IconNote /><span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Note</span></div>
-                                                            <p className="text-sm text-text-secondary leading-relaxed">{snap.notes}</p>
-                                                        </div>
-                                                    )}
-                                                    <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-3">Account Breakdown</h4>
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                                                        {accounts.map((acc, idx) => (
-                                                            <div key={acc.id} className="flex flex-col"><div className="flex items-center gap-1.5 mb-1"><div className="w-2 h-2 rounded-full" style={{backgroundColor: ACCOUNT_COLORS[idx % ACCOUNT_COLORS.length]}}></div><span className="text-xs text-text-secondary truncate">{acc.name}</span></div><span className="font-bold text-sm">{formatCurr(snap.balances[acc.id] || 0)}</span></div>
-                                                        ))}
+                                            <div className="px-4 pb-4 bg-muted/10 slide-down border-t border-border/50 pt-4">
+                                                {snap.notes && (
+                                                    <div className="mb-4">
+                                                        <span className="text-[10px] font-mono font-bold text-text-secondary uppercase block mb-1">Note</span>
+                                                        <p className="text-xs font-mono text-white">{snap.notes}</p>
                                                     </div>
-                                                    <div className="flex gap-2 justify-end">
-                                                        <button onClick={() => handleEdit(snap)} className="flex items-center gap-1.5 px-3.5 py-2 bg-card border border-border rounded-xl text-xs font-semibold hover:bg-muted transition-colors"><IconEdit /> Edit</button>
-                                                        <button onClick={() => handleDelete(snap.id)} className="flex items-center gap-1.5 px-3.5 py-2 bg-destructive-light text-destructive rounded-xl text-xs font-semibold hover:opacity-80 transition-colors"><IconTrash /> Delete</button>
-                                                    </div>
+                                                )}
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => handleEdit(snap)} className="text-[10px] font-mono font-bold text-white bg-muted px-3 py-1.5 rounded-full hover:bg-muted-dark border border-border transition-colors">EDIT</button>
+                                                    <button onClick={() => handleDelete(snap.id)} className="text-[10px] font-mono font-bold text-destructive bg-destructive/10 px-3 py-1.5 rounded-full hover:bg-destructive/20 border border-destructive/20 transition-colors">DELETE</button>
                                                 </div>
                                             </div>
                                         )}
                                     </div>
                                 );
                             })}
-                            {snapshots.length === 0 && (<div className="text-center py-12"><p className="text-text-muted font-medium">No snapshots logged yet.</p><p className="text-xs text-text-muted mt-1">Click "Log Snapshot" to get started.</p></div>)}
                         </div>
                     </div>
                 </div>
@@ -1475,37 +1420,28 @@
 
             return (
                 <div className="flex h-screen overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg)' }}>
-                    {/* Desktop Sidebar */}
-                    <aside className="w-[260px] bg-sidebar hidden md:flex flex-col z-10 shadow-xl">
-                        <div className="p-6 flex items-center justify-between border-b border-white/5">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-glow"><span className="text-white font-extrabold text-lg">F</span></div>
-                                <div><h1 className="text-white text-lg font-bold tracking-tight">FinanceOS</h1></div>
-                            </div>
+                    {/* Desktop Sidebar (Narrow Vitals Style) */}
+                    <aside className="w-[68px] bg-sidebar hidden md:flex flex-col z-10 border-r border-border items-center py-6">
+                        <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-glow mb-8 shrink-0 text-sidebar font-extrabold text-xl">
+                            F
                         </div>
-                        <nav className="px-3 py-4 space-y-1 flex-1">
+                        <nav className="flex-1 flex flex-col items-center gap-6 mt-4 w-full px-2">
                             {TABS.map(tab => (
-                                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                                    className={`sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all text-sm ${activeTab === tab.id ? 'sidebar-link-active bg-sidebar-active text-white shadow-lg shadow-primary/20' : 'text-gray-400 hover:text-white hover:bg-sidebar-hover'}`}>
-                                    <tab.icon /> 
-                                    <span>{tab.label}</span>
+                                <button key={tab.id} onClick={() => setActiveTab(tab.id)} title={tab.label}
+                                    className={`relative w-11 h-11 rounded-xl flex items-center justify-center transition-all ${activeTab === tab.id ? 'bg-primary/10 text-primary shadow-glow' : 'text-text-muted hover:text-white hover:bg-sidebar-hover'}`}>
+                                    <tab.icon />
+                                    {activeTab === tab.id && <div className="absolute left-[-8px] top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-md"></div>}
                                 </button>
                             ))}
                         </nav>
                         {/* Sidebar Footer Controls */}
-                        <div className="px-4 py-3 border-t border-white/5 space-y-2">
-                            <button onClick={() => setDark(!dark)} className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-gray-400 hover:text-white hover:bg-sidebar-hover transition-all text-xs font-medium">
-                                {dark ? <IconSun /> : <IconMoon />}
-                                <span>{dark ? 'Light Mode' : 'Dark Mode'}</span>
-                            </button>
-                            <button onClick={handleLock} className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-xs font-medium">
+                        <div className="flex flex-col items-center gap-4 mt-auto w-full px-2">
+                            <button onClick={handleLock} title="Lock Dashboard" className="w-11 h-11 flex items-center justify-center rounded-xl text-text-muted hover:text-white hover:bg-sidebar-hover transition-all">
                                 <IconLock />
-                                <span>Lock Dashboard</span>
                             </button>
-                        </div>
-                        <div className="px-4 py-3 border-t border-white/5">
-                            <div className="text-[11px] text-gray-500 font-medium">FinanceOS v1.2.0</div>
-                            <div className="text-[11px] text-gray-600">Self-hosted · Secured</div>
+                            <div className="w-8 h-8 rounded-full bg-border flex items-center justify-center text-text-muted text-xs font-bold border border-border mt-2">
+                                JD
+                            </div>
                         </div>
                     </aside>
 
