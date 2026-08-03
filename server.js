@@ -27,28 +27,36 @@ const getDb = () => {
   return db;
 };
 
+let lastUploadError = null;
+let lastDownloadError = null;
+
 // Vercel Blob Persistence & Sync Helpers
 const downloadDbFromBlob = async () => {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return;
   try {
+    lastDownloadError = null;
     const blobs = await list({ prefix: 'financeos.db' });
     if (blobs && blobs.blobs && blobs.blobs.length > 0) {
-      // Sort by uploadedAt descending so sortedBlobs[0] is guaranteed to be the most recent backup!
       const sortedBlobs = blobs.blobs.slice().sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
       const latestBlob = sortedBlobs[0];
       const blobTime = new Date(latestBlob.uploadedAt).getTime();
       
       if (blobTime > lastBlobSyncTime || !fs.existsSync(dbPath) || fs.statSync(dbPath).size === 0) {
-        const res = await fetch(latestBlob.url);
+        const fetchUrl = latestBlob.downloadUrl || latestBlob.url;
+        const headers = latestBlob.downloadUrl ? { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` } : {};
+        const res = await fetch(fetchUrl, { headers });
         if (res.ok) {
           const arrayBuf = await res.arrayBuffer();
           fs.writeFileSync(dbPath, Buffer.from(arrayBuf));
           lastBlobSyncTime = blobTime;
-          console.log('[Cloud Sync] Downloaded latest financeos.db from Vercel Blob:', latestBlob.url, new Date(blobTime).toISOString());
+          console.log('[Cloud Sync] Downloaded latest financeos.db from Vercel Blob:', fetchUrl);
+        } else {
+          lastDownloadError = `HTTP ${res.status}: ${res.statusText}`;
         }
       }
     }
   } catch (err) {
+    lastDownloadError = err.message;
     console.error('[Cloud Sync Error] Download failed:', err.message);
   }
 };
@@ -56,16 +64,20 @@ const downloadDbFromBlob = async () => {
 const uploadDbToBlob = async () => {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return;
   try {
+    lastUploadError = null;
     if (fs.existsSync(dbPath) && fs.statSync(dbPath).size > 0) {
       const fileData = fs.readFileSync(dbPath);
-      await put('financeos.db', fileData, {
-        access: 'public',
-        addRandomSuffix: false,
-      });
+      let res;
+      try {
+        res = await put('financeos.db', fileData, { access: 'public', addRandomSuffix: false });
+      } catch (pubErr) {
+        res = await put('financeos.db', fileData, { access: 'private', addRandomSuffix: false });
+      }
       lastBlobSyncTime = Date.now();
-      console.log('[Cloud Sync] Uploaded financeos.db to Vercel Blob');
+      console.log('[Cloud Sync] Uploaded financeos.db to Vercel Blob:', res.url);
     }
   } catch (err) {
+    lastUploadError = err.message;
     console.error('[Cloud Sync Error] Upload failed:', err.message);
   }
 };
@@ -335,6 +347,8 @@ app.get('/api/debug/sync', async (req, res) => {
       blobCount: blobList.length,
       blobList,
       blobError,
+      lastUploadError,
+      lastDownloadError,
       accCount: accCount ? accCount.count : 0,
       snapCount: snapCount ? snapCount.count : 0,
       lastBlobSyncTime,
